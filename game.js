@@ -182,6 +182,8 @@
     raceStartTime: null,
     tickHandle:    null,
     timerHandle:   null,
+    rafHandle:     null,        // requestAnimationFrame handle
+    lastFrameTime: null,        // timestamp of previous rAF frame
   };
 
   /* --- Price Simulation -------------------------------------- */
@@ -209,6 +211,7 @@
       price:       1.0,
       gainPct:     0.0,
       positionPct: TRACK_LEFT,
+      velocity:    BASE_SPEED / TICK_MS,  // pct per ms — starts at base cruise speed
     }));
   }
 
@@ -221,22 +224,48 @@
     buildTickerDOM();
     renderLeader();
 
-    state.tickHandle  = setInterval(tick, TICK_MS);
+    // Start continuous rAF render loop (smooth position updates at 60 fps)
+    state.lastFrameTime = null;
+    state.rafHandle     = requestAnimationFrame(renderLoop);
+
+    // Price ticks every 2 s (set velocities, not positions directly)
+    state.tickHandle  = setInterval(priceTick, TICK_MS);
     state.timerHandle = setInterval(updateTimer, TIMER_TICK_MS);
   }
 
-  function tick() {
+  /* Price tick — runs every TICK_MS. Updates prices and recalculates
+     per-horse velocity. Does NOT move horses directly; the rAF loop does. */
+  function priceTick() {
     const returns = generateReturns();
     state.horses.forEach((horse, i) => {
       const r = returns[i];
-      horse.price      *= (1 + r);
-      horse.gainPct     = (horse.price - 1) * 100;
-      const delta       = Math.max(0, BASE_SPEED + RETURN_SCALING * r);
-      horse.positionPct = Math.min(TRACK_RIGHT, horse.positionPct + delta);
+      horse.price    *= (1 + r);
+      horse.gainPct   = (horse.price - 1) * 100;
+      // Convert per-tick delta → continuous velocity (pct per ms)
+      const delta     = Math.max(0, BASE_SPEED + RETURN_SCALING * r);
+      horse.velocity  = delta / TICK_MS;
     });
-    renderHorsePositions();
+    updateGainLabels();   // update % labels on the horses
     renderTicker();
     renderLeader();
+  }
+
+  /* rAF render loop — runs every animation frame (~16 ms at 60 fps).
+     Advances each horse by velocity × elapsed time, then syncs the DOM. */
+  function renderLoop(now) {
+    if (state.phase !== 'racing') return;   // stop if race ended
+
+    if (state.lastFrameTime !== null) {
+      // Cap dt to 100 ms so a tab-switch pause doesn't teleport horses
+      const dt = Math.min(now - state.lastFrameTime, 100);
+      state.horses.forEach(horse => {
+        horse.positionPct = Math.min(TRACK_RIGHT, horse.positionPct + horse.velocity * dt);
+      });
+      updateHorseDOMPositions();
+    }
+
+    state.lastFrameTime = state.rafHandle ? now : null;
+    state.rafHandle     = requestAnimationFrame(renderLoop);
   }
 
   function updateTimer() {
@@ -252,6 +281,7 @@
     clearInterval(state.tickHandle);
     clearInterval(state.timerHandle);
     state.tickHandle = state.timerHandle = null;
+    if (state.rafHandle) { cancelAnimationFrame(state.rafHandle); state.rafHandle = null; }
     state.phase = 'results';
     document.querySelectorAll('.horse').forEach(el => el.classList.remove('racing'));
     setTimeout(showResults, 1000);
@@ -651,29 +681,33 @@
     });
   }
 
-  /* --- DOM Updates (each tick) ------------------------------ */
+  /* --- DOM Updates ------------------------------------------ */
 
-  function renderHorsePositions() {
+  /* Called every rAF frame — only touches left% and rank badges */
+  function updateHorseDOMPositions() {
     const byPosition = [...state.horses]
       .map((h, i) => ({ ...h, origIdx: i }))
       .sort((a, b) => b.positionPct - a.positionPct);
 
     state.horses.forEach((horse, i) => {
       const horseEl = document.getElementById(`horse-${i}`);
-      if (!horseEl) return;
-      horseEl.style.left = `${horse.positionPct}%`;
-
-      const gainEl = document.getElementById(`gain-${i}`);
-      if (gainEl) {
-        const sign = horse.gainPct >= 0 ? '+' : '';
-        gainEl.textContent = `${sign}${horse.gainPct.toFixed(3)}%`;
-        gainEl.className   = `horse-gain-label ${horse.gainPct > 0 ? 'positive' : horse.gainPct < 0 ? 'negative' : 'neutral'}`;
-      }
+      if (horseEl) horseEl.style.left = `${horse.positionPct}%`;
     });
 
     byPosition.forEach((horse, rank) => {
       const rankEl = document.getElementById(`rank-${horse.origIdx}`);
       if (rankEl) rankEl.textContent = `#${rank + 1}`;
+    });
+  }
+
+  /* Called every price tick — updates gain% labels on each horse */
+  function updateGainLabels() {
+    state.horses.forEach((horse, i) => {
+      const gainEl = document.getElementById(`gain-${i}`);
+      if (!gainEl) return;
+      const sign = horse.gainPct >= 0 ? '+' : '';
+      gainEl.textContent = `${sign}${horse.gainPct.toFixed(3)}%`;
+      gainEl.className   = `horse-gain-label ${horse.gainPct > 0 ? 'positive' : horse.gainPct < 0 ? 'negative' : 'neutral'}`;
     });
   }
 

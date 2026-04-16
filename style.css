@@ -754,7 +754,7 @@ body {
   align-items: center;
   gap: 5px;
   z-index: 10;
-  transition: left 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* no transition on left — position is driven by rAF at 60 fps */
 }
 
 /* Gallop — bobs on transform (separate from left transition) */
