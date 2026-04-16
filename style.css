@@ -1,0 +1,1121 @@
+/* ============================================================
+   CRYPTO PONY — Styles v3
+   ============================================================ */
+
+/* --- Variables & Reset ---------------------------------------- */
+:root {
+  --bg:           #0a0a0f;
+  --surface:      #0f1117;
+  --surface-2:    #141520;
+  --surface-3:    #1a1d2e;
+  --border:       #1e2040;
+  --border-glow:  #2a2d50;
+
+  --cyan:         #00f5ff;
+  --cyan-dim:     rgba(0, 245, 255, 0.12);
+  --cyan-glow:    rgba(0, 245, 255, 0.4);
+  --purple:       #b44fff;
+  --purple-dim:   rgba(180, 79, 255, 0.15);
+  --purple-glow:  rgba(180, 79, 255, 0.4);
+  --gold:         #ffd700;
+  --gold-dim:     rgba(255, 215, 0, 0.15);
+  --gold-glow:    rgba(255, 215, 0, 0.5);
+  --green:        #00ff88;
+  --green-dim:    rgba(0, 255, 136, 0.12);
+  --red:          #ff3366;
+  --red-dim:      rgba(255, 51, 102, 0.12);
+
+  --text:         #e8e8ff;
+  --text-muted:   #5a5a8a;
+  --text-dim:     #888aaa;
+
+  --font-head:    'Space Grotesk', sans-serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  --track-h:      72px;
+  --radius:       10px;
+
+  /* Racetrack colours */
+  --grass:        #2a6020;
+  --grass-dark:   #1e4818;
+  --dirt:         #c4956a;
+  --dirt-dark:    #b07a50;
+  --gate-dark:    #111;
+  --gate-mid:     #555;
+  --gate-edge:    #999;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.4;
+  overflow-x: hidden;
+}
+
+/* --- Screens -------------------------------------------------- */
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: block; }
+.hidden { display: none !important; }
+
+/* ============================================================
+   LOBBY
+   ============================================================ */
+
+.lobby-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 36px 24px 60px;
+}
+
+/* --- Header -------------------------------------------------- */
+.lobby-header { text-align: center; margin-bottom: 32px; }
+
+.logo-mark {
+  font-size: 44px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 16px var(--gold));
+  animation: floatTrophy 3s ease-in-out infinite;
+  display: block;
+}
+
+@keyframes floatTrophy {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-7px); }
+}
+
+.game-title {
+  font-family: var(--font-head);
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 900;
+  letter-spacing: 6px;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.game-subtitle {
+  font-size: 15px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.race-info-bar {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.info-pill {
+  background: var(--surface-3);
+  border: 1px solid var(--border-glow);
+  border-radius: 100px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+
+.section-label {
+  font-family: var(--font-head);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+/* --- Bet Type Tabs ------------------------------------------- */
+.bet-tabs-wrapper {
+  margin-bottom: 20px;
+}
+
+.bet-tabs {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.bet-tab {
+  flex: 1;
+  background: var(--surface);
+  border: none;
+  border-right: 1px solid var(--border);
+  padding: 14px 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-dim);
+}
+
+.bet-tab:last-child { border-right: none; }
+
+.bet-tab:hover { background: var(--surface-2); }
+
+.bet-tab.active {
+  background: var(--surface-3);
+  border-bottom: 2px solid var(--cyan);
+  color: var(--text);
+}
+
+.bet-tab-key {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+
+.bet-tab-label {
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.bet-tab-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.bet-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+  min-height: 20px;
+}
+
+.bet-desc strong { color: var(--cyan); }
+
+/* --- Trifecta Slots ------------------------------------------ */
+.trifecta-slots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.trifecta-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 110px;
+  padding: 12px 8px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border-glow);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.trifecta-slot:hover {
+  border-color: var(--text-muted);
+}
+
+.trifecta-slot.filled {
+  border-style: solid;
+  background: var(--surface-3);
+}
+
+.trifecta-slot.filled:nth-child(1) {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px var(--gold-dim);
+}
+.trifecta-slot:nth-child(3).filled {
+  border-color: #aaa;
+  box-shadow: 0 0 12px rgba(170,170,170,0.2);
+}
+.trifecta-slot:nth-child(5).filled {
+  border-color: #cd7f32;
+  box-shadow: 0 0 12px rgba(205,127,50,0.2);
+}
+
+.slot-medal { font-size: 18px; line-height: 1; }
+
+.slot-pos {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+}
+
+.slot-horse {
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.tri-arrow {
+  font-size: 20px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* --- Horse Cards -------------------------------------------- */
+.betting-section { margin-bottom: 20px; }
+
+.betting-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.horse-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  text-align: center;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.horse-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--purple-dim) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.horse-card:hover { border-color: var(--border-glow); transform: translateY(-2px); }
+.horse-card:hover::before { opacity: 0.5; }
+
+/* Win/Place selection — purple */
+.horse-card.selected {
+  border-color: var(--purple);
+  box-shadow: 0 0 18px var(--purple-glow), inset 0 0 16px var(--purple-dim);
+  transform: translateY(-2px);
+}
+.horse-card.selected::before { opacity: 1; }
+
+/* Trifecta position colours */
+.horse-card.tri-1 {
+  border-color: var(--gold);
+  box-shadow: 0 0 18px var(--gold-dim);
+}
+.horse-card.tri-2 {
+  border-color: #aaa;
+  box-shadow: 0 0 18px rgba(170,170,170,0.25);
+}
+.horse-card.tri-3 {
+  border-color: #cd7f32;
+  box-shadow: 0 0 18px rgba(205,127,50,0.25);
+}
+
+.card-selected-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: var(--purple);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  padding: 2px 5px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.horse-card.selected .card-selected-badge { opacity: 1; }
+
+.card-emoji { font-size: 32px; display: block; margin-bottom: 6px; line-height: 1; }
+.card-symbol {
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+  letter-spacing: 1px;
+}
+.card-name { font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 8px; }
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.card-odds {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cyan);
+  background: var(--cyan-dim);
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.card-vol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.vol-bars { display: flex; gap: 2px; align-items: flex-end; }
+.vol-bar { width: 5px; border-radius: 2px; background: var(--border-glow); }
+.vol-bars .vol-bar:nth-child(1) { height: 5px; }
+.vol-bars .vol-bar:nth-child(2) { height: 8px; }
+.vol-bars .vol-bar:nth-child(3) { height: 11px; }
+.vol-bars .vol-bar:nth-child(4) { height: 14px; }
+
+.vol-label {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-family: var(--font-mono);
+}
+
+/* --- Betting Slip -------------------------------------------- */
+.bet-summary {
+  background: var(--surface);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius);
+  padding: 0;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.bet-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.bet-summary-title {
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+}
+
+.bet-summary-stake {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.summary-rows { padding: 4px 0; min-height: 44px; }
+
+.summary-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 12px 16px;
+  font-style: italic;
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.summary-row:last-child { border-bottom: none; }
+
+.summary-type {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cyan);
+  width: 100px;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+.summary-pick {
+  flex: 1;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summary-pays {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.summary-pays strong { color: var(--green); }
+
+.summary-totals {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.summary-total-label { color: var(--text-muted); }
+.summary-total-value { font-weight: 700; color: var(--text); }
+.summary-green { color: var(--green) !important; }
+.summary-sep { color: var(--border-glow); }
+
+/* --- Start Button ------------------------------------------- */
+.start-area { text-align: center; }
+
+.btn-start {
+  background: linear-gradient(135deg, var(--cyan) 0%, #0088ff 100%);
+  color: #000;
+  border: none;
+  border-radius: var(--radius);
+  padding: 15px 48px;
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 0 32px var(--cyan-glow);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.btn-start:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 40px var(--cyan-glow);
+}
+.btn-start:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+.btn-icon { font-size: 18px; }
+
+.start-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   RACE SCREEN
+   ============================================================ */
+
+.race-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 20px 28px;
+}
+
+/* --- Race Header -------------------------------------------- */
+.race-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 22px;
+  margin-bottom: 16px;
+  gap: 20px;
+}
+
+.race-title-block { display: flex; flex-direction: column; gap: 3px; }
+
+.race-label {
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+}
+
+.race-status {
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--green);
+}
+
+.timer-block { text-align: center; }
+
+.timer-label {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.timer-display {
+  font-family: var(--font-head);
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--cyan);
+  text-shadow: 0 0 24px var(--cyan-glow);
+  letter-spacing: 4px;
+  line-height: 1;
+  transition: color 0.5s, text-shadow 0.5s;
+}
+
+.timer-display.urgent {
+  color: var(--red);
+  text-shadow: 0 0 24px rgba(255, 51, 102, 0.6);
+  animation: timerPulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes timerPulse {
+  from { opacity: 1; }
+  to   { opacity: 0.5; }
+}
+
+.leaderboard-mini { text-align: right; }
+.leader-label {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.leader-name {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: 0 0 12px var(--gold-glow);
+}
+
+/* --- Race Track -------------------------------------------- */
+
+.track-container {
+  /* Outer green grass frame */
+  background: var(--grass);
+  border: 3px solid var(--grass-dark);
+  border-radius: var(--radius);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;           /* thin gap between lanes = chalk lines */
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+/* "FINISH" text label above finish stripe */
+.track-container::after {
+  content: '🏁 FINISH';
+  position: absolute;
+  right: calc(10% - 4px);
+  top: 6px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #fff;
+  font-family: var(--font-head);
+  background: rgba(0,0,0,0.6);
+  padding: 1px 4px;
+  border-radius: 3px;
+  z-index: 30;
+  pointer-events: none;
+}
+
+/* Crowd strips (top & bottom) */
+.crowd-strip {
+  background: linear-gradient(to bottom, #1e4818, var(--grass));
+  color: rgba(255,255,255,0.8);
+  font-size: 14px;
+  padding: 4px 0;
+  letter-spacing: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  user-select: none;
+  text-align: center;
+  flex-shrink: 0;
+  /* Subtle crowd animation */
+  animation: crowdSway 4s ease-in-out infinite;
+}
+.crowd-strip:last-child {
+  background: linear-gradient(to top, #1e4818, var(--grass));
+  animation-delay: -2s;
+}
+
+@keyframes crowdSway {
+  0%, 100% { letter-spacing: 4px; }
+  50%       { letter-spacing: 5.5px; }
+}
+
+/* Individual lane — dirt track */
+.lane {
+  position: relative;
+  height: var(--track-h);
+  background: linear-gradient(to bottom, var(--dirt) 0%, var(--dirt-dark) 100%);
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.lane:nth-child(even) {
+  background: linear-gradient(to bottom, #b88050 0%, #a87040 100%);
+}
+
+/* Starting gate bars — left edge of each lane */
+.lane::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  background:
+    linear-gradient(90deg, #1a1a1a 0%, #1a1a1a 85%, var(--gate-edge) 85%, var(--gate-edge) 100%),
+    repeating-linear-gradient(
+      to bottom,
+      var(--gate-dark)  0px,
+      var(--gate-dark)  5px,
+      var(--gate-mid)   5px,
+      var(--gate-mid)   8px
+    );
+  z-index: 5;
+}
+
+/* Finish line — right side of each lane, black & white stripes */
+.lane::after {
+  content: '';
+  position: absolute;
+  right: 10%;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #000 0px,   #000 5px,
+    #fff 5px,   #fff 10px
+  );
+  opacity: 0.55;
+  z-index: 3;
+}
+
+/* User-bet lane gets a purple left glow */
+.lane.user-bet-lane {
+  box-shadow: inset 4px 0 0 var(--purple), inset 0 0 24px rgba(180,79,255,0.15);
+}
+
+/* Rank badge (#1, #2…) near finish line */
+.lane-rank {
+  position: absolute;
+  right: 12%;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(0,0,0,0.35);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Horse element — horizontal layout [emoji] [SYMBOL / gain%] */
+.horse {
+  position: absolute;
+  left: 2%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  z-index: 10;
+  transition: left 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Gallop — bobs on transform (separate from left transition) */
+.horse.racing {
+  animation: gallop 0.32s ease-in-out infinite alternate;
+}
+
+@keyframes gallop {
+  from { transform: translateY(calc(-50% - 4px)) rotate(-2deg); }
+  to   { transform: translateY(calc(-50% + 4px)) rotate(2deg); }
+}
+
+/* Crown floats above the horse, positioned relative to .horse */
+.horse-crown {
+  position: absolute;
+  top: -18px;
+  left: 14px;     /* roughly above the emoji center */
+  font-size: 13px;
+  z-index: 15;
+  pointer-events: none;
+  animation: crownFloat 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes crownFloat {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-3px); }
+}
+
+/* Emoji — flip horizontally so horses face RIGHT (direction of travel) */
+.horse-emoji {
+  font-size: 30px;
+  line-height: 1;
+  flex-shrink: 0;
+  display: inline-block;
+  transform: scaleX(-1);
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+
+/* Label pill: SYMBOL on top, gain% below */
+.horse-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 5px;
+  padding: 2px 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(2px);
+}
+
+.horse-symbol {
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.horse-gain-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.horse-gain-label.positive { color: var(--green); }
+.horse-gain-label.negative { color: var(--red); }
+.horse-gain-label.neutral  { color: rgba(255,255,255,0.5); }
+
+/* --- Gain Ticker -------------------------------------------- */
+.gain-ticker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 9px;
+  background: var(--surface-2);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.ticker-item.leader {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+}
+
+.ticker-symbol { font-weight: 700; color: var(--text); }
+.ticker-gain.positive { color: var(--green); font-weight: 700; }
+.ticker-gain.negative { color: var(--red);   font-weight: 700; }
+.ticker-gain.neutral  { color: var(--text-muted); }
+
+/* ============================================================
+   RESULTS SCREEN
+   ============================================================ */
+
+.results-inner {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 36px 24px 60px;
+  text-align: center;
+}
+
+/* --- Winner Banner ------------------------------------------ */
+.winner-banner { margin-bottom: 32px; animation: fadeIn 0.8s ease-out; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.winner-crown {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 6px;
+  animation: crownBounce 0.8s ease-out;
+}
+
+@keyframes crownBounce {
+  0%   { transform: translateY(-30px); opacity: 0; }
+  60%  { transform: translateY(6px); opacity: 1; }
+  100% { transform: translateY(0); }
+}
+
+.winner-emoji  { font-size: 64px; display: block; margin-bottom: 8px; animation: winnerPop 0.5s 0.2s both; }
+
+@keyframes winnerPop {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.winner-name {
+  font-family: var(--font-head);
+  font-size: clamp(40px, 8vw, 68px);
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 0 0 40px var(--gold-glow);
+  letter-spacing: 4px;
+  animation: goldPulse 1.5s ease-in-out infinite alternate;
+  margin-bottom: 6px;
+}
+
+@keyframes goldPulse {
+  from { text-shadow: 0 0 20px var(--gold-glow); }
+  to   { text-shadow: 0 0 60px var(--gold-glow), 0 0 100px rgba(255,215,0,0.2); }
+}
+
+.winner-gain {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+/* --- Bet Results -------------------------------------------- */
+.bet-results-section {
+  margin-bottom: 28px;
+  text-align: left;
+  animation: fadeIn 0.8s 0.3s both;
+}
+
+.bet-results-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.bet-result-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.bet-result-row.bet-won {
+  border-color: var(--green);
+  background: var(--green-dim);
+}
+
+.bet-result-row.bet-lost {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+
+.br-type {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--cyan);
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.br-middle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.br-pick {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.br-finish {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.br-pnl {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.br-pnl.positive { color: var(--green); }
+.br-pnl.negative { color: var(--red); }
+
+.bet-net-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-top: 2px solid var(--border-glow);
+  margin-top: 2px;
+}
+
+.net-label {
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+}
+
+.net-value {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.net-value.positive { color: var(--green); }
+.net-value.negative { color: var(--red); }
+.net-value.neutral  { color: var(--text-dim); }
+
+.no-bets-msg {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 12px;
+  font-style: italic;
+}
+
+/* --- Final Standings ---------------------------------------- */
+.podium-section {
+  margin-bottom: 28px;
+  text-align: left;
+  animation: fadeIn 0.8s 0.5s both;
+}
+
+.results-table { display: flex; flex-direction: column; gap: 5px; }
+
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.result-row.place-1 {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+}
+
+.result-row.user-horse { border-color: var(--purple); }
+
+.result-place { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--text-muted); width: 26px; text-align: center; }
+.result-row.place-1 .result-place { color: var(--gold); }
+.result-emoji { font-size: 22px; width: 28px; text-align: center; }
+.result-name  { flex: 1; font-weight: 600; font-size: 13px; }
+.result-symbol { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.result-gain  { font-family: var(--font-mono); font-size: 13px; font-weight: 700; margin-left: auto; }
+.result-gain.positive { color: var(--green); }
+.result-gain.negative { color: var(--red); }
+
+/* --- Race Again Button ------------------------------------- */
+.btn-race-again {
+  background: var(--surface-3);
+  color: var(--text);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius);
+  padding: 13px 38px;
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 0.8s 0.7s both;
+}
+
+.btn-race-again:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 20px var(--cyan-glow);
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .betting-panel { grid-template-columns: repeat(2, 1fr); }
+  .timer-display { font-size: 36px; }
+  .race-header   { flex-wrap: wrap; gap: 10px; }
+  .trifecta-slots { gap: 6px; }
+  .trifecta-slot  { width: 90px; }
+
+  :root { --track-h: 60px; }
+  .horse-emoji { font-size: 24px; }
+}
+
+@media (max-width: 480px) {
+  .game-title { font-size: 32px; }
+  .bet-tab-hint { display: none; }
+  .br-type { width: 70px; font-size: 8px; }
+}

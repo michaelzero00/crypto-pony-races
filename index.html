@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Pony Races</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+
+  <!-- SCREEN 1: Lobby -->
+  <div id="lobby" class="screen active">
+    <div class="lobby-inner">
+
+      <header class="lobby-header">
+        <div class="logo-mark">🏆</div>
+        <h1 class="game-title">CRYPTO PONY</h1>
+        <p class="game-subtitle">Pick your horses. The market decides the winner.</p>
+        <div class="race-info-bar">
+          <span class="info-pill">⏱ 1 MIN RACE</span>
+          <span class="info-pill">🐴 8 HORSES</span>
+          <span class="info-pill">💵 $1 PER BET</span>
+        </div>
+      </header>
+
+      <!-- Bet Type Tabs -->
+      <div class="bet-tabs-wrapper">
+        <div class="bet-tabs">
+          <button class="bet-tab active" data-tab="win">
+            <span class="bet-tab-key">A</span>
+            <span class="bet-tab-label">WIN</span>
+            <span class="bet-tab-hint">Pick 1st place</span>
+          </button>
+          <button class="bet-tab" data-tab="place">
+            <span class="bet-tab-key">B</span>
+            <span class="bet-tab-label">PLACE</span>
+            <span class="bet-tab-hint">Finish top 3</span>
+          </button>
+          <button class="bet-tab" data-tab="trifecta">
+            <span class="bet-tab-key">C</span>
+            <span class="bet-tab-label">TRIFECTA</span>
+            <span class="bet-tab-hint">Exact 1–2–3</span>
+          </button>
+        </div>
+        <p class="bet-desc" id="bet-desc-text">Pick <strong>one horse</strong> to finish 1st</p>
+      </div>
+
+      <!-- Trifecta ordered slots (visible only in trifecta tab) -->
+      <div id="trifecta-slots" class="trifecta-slots hidden">
+        <div class="trifecta-slot" id="tri-slot-0" data-slot="0">
+          <span class="slot-medal">🥇</span>
+          <span class="slot-pos">1ST</span>
+          <span class="slot-horse">—</span>
+        </div>
+        <span class="tri-arrow">→</span>
+        <div class="trifecta-slot" id="tri-slot-1" data-slot="1">
+          <span class="slot-medal">🥈</span>
+          <span class="slot-pos">2ND</span>
+          <span class="slot-horse">—</span>
+        </div>
+        <span class="tri-arrow">→</span>
+        <div class="trifecta-slot" id="tri-slot-2" data-slot="2">
+          <span class="slot-medal">🥉</span>
+          <span class="slot-pos">3RD</span>
+          <span class="slot-horse">—</span>
+        </div>
+      </div>
+
+      <!-- Horse Cards -->
+      <section class="betting-section">
+        <h2 class="section-label">SELECT YOUR HORSE</h2>
+        <div id="betting-panel" class="betting-panel">
+          <!-- injected by JS -->
+        </div>
+      </section>
+
+      <!-- Betting Slip Summary -->
+      <div class="bet-summary">
+        <div class="bet-summary-header">
+          <span class="bet-summary-title">📋 BETTING SLIP</span>
+          <span class="bet-summary-stake">$1.00 per bet</span>
+        </div>
+        <div id="summary-rows" class="summary-rows">
+          <!-- injected by updateBetSummary() -->
+        </div>
+        <div class="summary-totals">
+          <span class="summary-total-label">Total wagered</span>
+          <span id="summary-wagered" class="summary-total-value">$0.00</span>
+          <span class="summary-sep">|</span>
+          <span class="summary-total-label">Max return</span>
+          <span id="summary-return" class="summary-total-value summary-green">—</span>
+        </div>
+      </div>
+
+      <div class="start-area">
+        <button id="start-race-btn" class="btn-start" disabled>
+          <span class="btn-icon">🚩</span>
+          START RACE
+        </button>
+        <p id="start-hint" class="start-hint">Place at least one bet to start</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCREEN 2: Active Race -->
+  <div id="race-screen" class="screen">
+    <div class="race-inner">
+      <header class="race-header">
+        <div class="race-title-block">
+          <span class="race-label">CRYPTO PONY RACES</span>
+          <span class="race-status">RACE IN PROGRESS</span>
+        </div>
+        <div class="timer-block">
+          <div class="timer-label">TIME REMAINING</div>
+          <div id="timer-display" class="timer-display">1:00</div>
+        </div>
+        <div class="leaderboard-mini">
+          <div class="leader-label">LEADING</div>
+          <div id="leader-name" class="leader-name">—</div>
+        </div>
+      </header>
+
+      <div id="track-container" class="track-container">
+        <!-- crowd strips + lanes injected by JS -->
+      </div>
+
+      <div id="gain-ticker" class="gain-ticker">
+        <!-- injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Results -->
+  <div id="results-screen" class="screen">
+    <div class="results-inner">
+
+      <div id="winner-banner" class="winner-banner">
+        <div class="winner-crown">👑</div>
+        <div id="winner-emoji" class="winner-emoji"></div>
+        <div id="winner-name" class="winner-name"></div>
+        <div id="winner-gain" class="winner-gain"></div>
+      </div>
+
+      <div class="bet-results-section">
+        <h3 class="section-label">YOUR BETS</h3>
+        <div id="bet-results-table" class="bet-results-table"></div>
+        <div id="bet-net-row" class="bet-net-row"></div>
+      </div>
+
+      <div class="podium-section">
+        <h3 class="section-label">FINAL STANDINGS</h3>
+        <div id="results-table" class="results-table"></div>
+      </div>
+
+      <button id="race-again-btn" class="btn-race-again">
+        <span class="btn-icon">🔄</span>
+        RACE AGAIN
+      </button>
+    </div>
+  </div>
+
+  <script src="game.js?v=4"></script>
+</body>
+</html>
