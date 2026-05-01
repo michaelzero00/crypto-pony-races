@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NovaBanque — International Transfer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0f0f12;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    padding: 32px 0;
+  }
+
+  /* ── Phone shell ─────────────────────────────── */
+  .phone {
+    width: min(393px, 100vw);
+    height: 852px;
+    background: #0a1628;
+    border-radius: min(50px, 6vw);
+    overflow: hidden;
+    box-shadow: 0 40px 120px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.08);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  /* status bar — iPhone 17 Dynamic Island */
+  .status-bar {
+    height: 56px;
+    background: #0a1628;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px 0;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .dynamic-island {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 34px;
+    background: #000;
+    border-radius: 20px;
+  }
+  .status-bar .time { color: #fff; font-size: 15px; font-weight: 600; }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons svg { fill: white; }
+
+  /* screen container */
+  .screens { flex: 1; position: relative; overflow: hidden; }
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    background: #ffffff;
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s ease, transform .35s ease;
+    transform: translateX(40px);
+    overflow-y: auto;
+  }
+  .screen.active {
+    opacity: 1; pointer-events: all; transform: translateX(0);
+  }
+  .screen.exit {
+    opacity: 0; transform: translateX(-40px);
+  }
+
+  /* ── Shared header ────────────────────────────── */
+  .nav-header {
+    background: #0a1628;
+    padding: 20px 24px 24px;
+    flex-shrink: 0;
+  }
+  .nav-back {
+    display: flex; align-items: center; gap: 8px;
+    color: #7b9fd4; font-size: 14px; font-weight: 500;
+    cursor: pointer; background: none; border: none;
+    margin-bottom: 20px; padding: 0;
+  }
+  .nav-back svg { width: 16px; height: 16px; }
+  .nav-title { color: #fff; font-size: 22px; font-weight: 700; letter-spacing: -.3px; }
+  .nav-subtitle { color: #7b9fd4; font-size: 13px; margin-top: 4px; }
+
+  /* ── Pill step indicator ────────────────────────── */
+  .steps {
+    display: flex; gap: 6px; padding: 0 24px 0;
+    margin-top: 20px;
+  }
+  .step-pill {
+    height: 4px; border-radius: 2px; flex: 1;
+    background: rgba(255,255,255,.15);
+    transition: background .3s;
+  }
+  .step-pill.done { background: #3d7fff; }
+  .step-pill.active { background: #7fb3ff; }
+
+  /* ── Body ─────────────────────────────────────── */
+  .body { padding: 28px 24px; flex: 1; }
+
+  /* ── Cards ─────────────────────────────────────── */
+  .card {
+    background: #f4f6fb;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-label {
+    font-size: 11px; font-weight: 600; letter-spacing: .8px;
+    text-transform: uppercase; color: #8a95a8; margin-bottom: 12px;
+  }
+
+  /* ── Account selector ──────────────────────────── */
+  .account-row {
+    display: flex; align-items: center; gap: 14px;
+    background: #fff; border-radius: 12px; padding: 14px 16px;
+    cursor: pointer; border: 2px solid transparent;
+    transition: border-color .2s;
+  }
+  .account-row.selected { border-color: #3d7fff; }
+  .account-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .account-info { flex: 1; }
+  .account-name { font-size: 15px; font-weight: 600; color: #111827; }
+  .account-num { font-size: 12px; color: #8a95a8; margin-top: 2px; }
+  .account-balance { font-size: 15px; font-weight: 700; color: #111827; }
+
+  /* ── Recipient ──────────────────────────────────── */
+  .recipient-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 20px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .recipient-row {
+    display: flex; align-items: center; gap: 14px;
+    background: #fff; border-radius: 12px; padding: 14px 16px;
+  }
+  .recipient-name { font-size: 16px; font-weight: 600; color: #111827; }
+  .recipient-detail { font-size: 12px; color: #8a95a8; margin-top: 2px; }
+  .flag { font-size: 20px; }
+
+  /* ── Amount input ────────────────────────────────── */
+  .amount-block {
+    text-align: center; padding: 8px 0 6px;
+  }
+  .currency-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #e8edf8; border-radius: 20px;
+    padding: 5px 14px; font-size: 13px; font-weight: 600; color: #3d7fff;
+    margin-bottom: 12px; cursor: pointer;
+  }
+  .amount-input {
+    font-size: 52px; font-weight: 700; color: #111827;
+    letter-spacing: -2px; border: none; background: transparent;
+    text-align: center; width: 100%; outline: none;
+    caret-color: #3d7fff; line-height: 1;
+  }
+  .amount-cursor {
+    display: inline-block; width: 3px; height: 52px;
+    background: #3d7fff; border-radius: 2px;
+    animation: blink 1s step-end infinite; vertical-align: middle;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .amount-sub { font-size: 13px; color: #8a95a8; margin-top: 6px; }
+
+  /* ── FX rate row ──────────────────────────────────── */
+  .fx-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-radius: 12px; padding: 10px 14px;
+    margin-bottom: 8px;
+  }
+  .fx-label { font-size: 12px; color: #8a95a8; }
+  .fx-value { font-size: 13px; font-weight: 600; color: #111827; margin-top: 1px; }
+  .fx-badge {
+    font-size: 11px; font-weight: 600; color: #16a34a;
+    background: #dcfce7; border-radius: 6px; padding: 2px 7px;
+  }
+
+  /* ── Detail rows ──────────────────────────────────── */
+  .detail-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 13px 0; border-bottom: 1px solid #eef0f5;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { font-size: 14px; color: #6b7280; }
+  .detail-val { font-size: 14px; font-weight: 600; color: #111827; text-align: right; max-width: 60%; }
+  .detail-val.green { color: #16a34a; }
+  .detail-val.blue { color: #3d7fff; }
+
+  /* ── Amount summary ───────────────────────────────── */
+  .summary-amount {
+    text-align: center; padding: 8px 0 20px;
+  }
+  .summary-amount .label { font-size: 13px; color: #8a95a8; margin-bottom: 6px; }
+  .summary-amount .big { font-size: 40px; font-weight: 800; color: #111827; letter-spacing: -1.5px; }
+  .summary-amount .sub { font-size: 15px; color: #8a95a8; margin-top: 4px; }
+
+  /* ── Section title ────────────────────────────────── */
+  .section-title { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 12px; }
+
+  /* ── Divider ──────────────────────────────────────── */
+  .divider { height: 1px; background: #eef0f5; margin: 4px 0 16px; }
+
+  /* ── Fee callout ──────────────────────────────────── */
+  .fee-callout {
+    background: #eff6ff; border-radius: 12px; padding: 14px 16px;
+    display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px;
+  }
+  .fee-callout .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .fee-callout .text { font-size: 13px; color: #1d4ed8; line-height: 1.5; }
+
+  /* ── Success screen ───────────────────────────────── */
+  .success-hero {
+    background: linear-gradient(160deg, #0a1628 0%, #0d2550 100%);
+    padding: 48px 24px 40px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .success-icon {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 0 16px rgba(34,197,94,.12);
+  }
+  .success-icon svg { width: 40px; height: 40px; stroke: white; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .success-title { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -.5px; }
+  .success-sub { font-size: 15px; color: #7b9fd4; margin-top: 8px; line-height: 1.5; }
+  .success-ref {
+    display: inline-block; margin-top: 16px;
+    background: rgba(255,255,255,.08); border-radius: 20px;
+    padding: 7px 18px; font-size: 13px; color: #7b9fd4;
+  }
+  .success-ref span { color: #fff; font-weight: 600; }
+
+  /* ── Timeline ──────────────────────────────────────── */
+  .timeline { padding: 8px 0; }
+  .tl-item { display: flex; gap: 14px; padding-bottom: 24px; position: relative; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-left { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .tl-dot.done { background: #dcfce7; }
+  .tl-dot.active { background: #dbeafe; }
+  .tl-dot.pending { background: #f3f4f6; }
+  .tl-line {
+    width: 2px; flex: 1; min-height: 16px;
+    background: #eef0f5; margin: 4px 0; border-radius: 1px;
+  }
+  .tl-item:last-child .tl-line { display: none; }
+  .tl-content { padding-top: 4px; }
+  .tl-title { font-size: 14px; font-weight: 600; color: #111827; }
+  .tl-meta { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+  /* ── Primary button ────────────────────────────────── */
+  .btn-primary {
+    width: 100%; padding: 18px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white; font-size: 16px; font-weight: 700;
+    border: none; border-radius: 16px; cursor: pointer;
+    letter-spacing: -.2px;
+    box-shadow: 0 4px 20px rgba(37,99,235,.35);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .btn-primary:active { transform: scale(.98); box-shadow: 0 2px 10px rgba(37,99,235,.25); }
+
+  .btn-secondary {
+    width: 100%; padding: 17px;
+    background: transparent; color: #3d7fff;
+    font-size: 15px; font-weight: 600;
+    border: 2px solid #e0e9ff; border-radius: 16px; cursor: pointer;
+    margin-top: 10px;
+    transition: background .15s;
+  }
+  .btn-secondary:active { background: #eff6ff; }
+
+  .btn-wrap { padding: 0 24px 40px; flex-shrink: 0; }
+
+  /* ── Notification bar ──────────────────────────────── */
+  .notif {
+    margin: 0 24px 16px;
+    background: #fef9c3; border-radius: 10px; padding: 11px 14px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: #713f12;
+  }
+
+  /* ── Numpad ────────────────────────────────────────── */
+  .numpad {
+    padding: 8px 20px 0;
+  }
+  .numpad-row { display: flex; gap: 10px; margin-bottom: 8px; }
+  .numpad-key {
+    flex: 1; height: 52px; background: #f4f6fb; border: none; border-radius: 14px;
+    font-size: 20px; font-weight: 500; color: #111827; cursor: pointer;
+    transition: background .12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .numpad-key:active { background: #e8edf8; }
+  .numpad-key.del { font-size: 17px; }
+  .numpad-key.empty { background: transparent; cursor: default; }
+
+  /* ── Screen 1: Dashboard ───────────────────────────── */
+  .dash-header {
+    background: linear-gradient(160deg, #0a1628 0%, #0d2550 100%);
+    padding: 20px 24px 32px;
+  }
+  .dash-greet { color: #7b9fd4; font-size: 14px; margin-bottom: 4px; }
+  .dash-name { color: #fff; font-size: 24px; font-weight: 800; letter-spacing: -.4px; }
+  .balance-card {
+    background: rgba(255,255,255,.07); border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.1);
+    padding: 20px; margin-top: 24px;
+  }
+  .bal-label { color: #7b9fd4; font-size: 12px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; }
+  .bal-amount { color: #fff; font-size: 38px; font-weight: 800; letter-spacing: -1.5px; margin: 6px 0; }
+  .bal-sub { color: #7b9fd4; font-size: 13px; }
+  .quick-actions {
+    display: flex; gap: 10px; padding: 24px 24px 0;
+  }
+  .qa-btn {
+    flex: 1; background: #f4f6fb; border-radius: 14px; padding: 16px 8px;
+    text-align: center; cursor: pointer; border: none;
+    transition: background .15s;
+  }
+  .qa-btn:active { background: #e8edf8; }
+  .qa-icon { font-size: 22px; margin-bottom: 7px; }
+  .qa-label { font-size: 12px; font-weight: 600; color: #374151; }
+  .qa-btn.highlighted { background: #eff6ff; }
+  .qa-btn.highlighted .qa-label { color: #2563eb; }
+
+  .recent-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 24px 24px 12px;
+  }
+  .recent-title { font-size: 16px; font-weight: 700; color: #111827; }
+  .recent-all { font-size: 13px; color: #3d7fff; font-weight: 600; }
+
+  .tx-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 24px; cursor: pointer;
+    transition: background .12s;
+  }
+  .tx-row:active { background: #f9fafb; }
+  .tx-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .tx-info { flex: 1; }
+  .tx-name { font-size: 15px; font-weight: 600; color: #111827; }
+  .tx-meta { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+  .tx-amount { font-size: 15px; font-weight: 700; }
+  .tx-amount.out { color: #111827; }
+  .tx-amount.in { color: #16a34a; }
+
+  /* ── Bottom nav ────────────────────────────────────── */
+  .bottom-nav {
+    background: #fff; border-top: 1px solid #eef0f5;
+    display: flex; padding: 12px 0 28px;
+    flex-shrink: 0;
+  }
+  .bnav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 4px; cursor: pointer; border: none; background: none;
+  }
+  .bnav-item svg { width: 22px; height: 22px; }
+  .bnav-label { font-size: 10px; font-weight: 600; color: #9ca3af; }
+  .bnav-item.active .bnav-label { color: #2563eb; }
+  .bnav-item.active svg { stroke: #2563eb; }
+  .bnav-item svg { stroke: #9ca3af; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* pill indicator on nav */
+  .bnav-dot {
+    width: 4px; height: 4px; border-radius: 2px; background: #2563eb;
+    margin-top: -2px;
+  }
+
+  /* ── Screen 3 compact overrides ───────────────────── */
+  #screen-3 .nav-header { padding: 16px 24px 18px; }
+  #screen-3 .nav-back { margin-bottom: 14px; }
+  #screen-3 .steps { margin-top: 14px; }
+  #screen-3 .body { padding: 16px 24px 0; }
+  #screen-3 .btn-wrap { padding: 12px 20px 24px; }
+
+  /* ── Screen 4 compact overrides ───────────────────── */
+  #screen-4 .nav-header { padding: 14px 24px 16px; }
+  #screen-4 .nav-back { margin-bottom: 12px; }
+  #screen-4 .steps { margin-top: 12px; }
+  #screen-4 .body { padding: 12px 20px 0; }
+  #screen-4 .summary-amount { padding: 4px 0 10px; }
+  #screen-4 .summary-amount .big { font-size: 32px; }
+  #screen-4 .summary-amount .sub { font-size: 13px; margin-top: 2px; }
+  #screen-4 .card { padding: 14px 16px; margin-bottom: 10px; }
+  #screen-4 .card-label { margin-bottom: 8px; }
+  #screen-4 .detail-row { padding: 8px 0; }
+  #screen-4 .detail-key { font-size: 13px; }
+  #screen-4 .detail-val { font-size: 13px; }
+  #screen-4 .bio-prompt { padding: 14px 16px; margin-bottom: 10px; }
+  #screen-4 .bio-icon { font-size: 36px; margin-bottom: 8px; }
+  #screen-4 .bio-title { font-size: 14px; margin-bottom: 4px; }
+  #screen-4 .bio-sub { font-size: 12px; }
+  #screen-4 .btn-wrap {
+    position: sticky; bottom: 0;
+    background: #fff;
+    padding: 10px 20px 28px;
+    border-top: 1px solid #eef0f5;
+  }
+  #screen-4 .btn-primary { padding: 15px; }
+  #screen-4 .btn-secondary { padding: 13px; margin-top: 8px; }
+
+  /* ── Confirm screen biometric ──────────────────────── */
+  .bio-prompt {
+    background: #f4f6fb; border-radius: 16px; padding: 24px;
+    text-align: center; margin-bottom: 16px;
+  }
+  .bio-icon { font-size: 52px; margin-bottom: 12px; }
+  .bio-title { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 6px; }
+  .bio-sub { font-size: 13px; color: #6b7280; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <!-- status bar -->
+  <div class="status-bar">
+    <div class="dynamic-island"></div>
+    <span class="time">9:41</span>
+    <div class="status-icons">
+      <svg width="16" height="12" viewBox="0 0 16 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="0" width="2.5" height="12" rx="1" opacity=".3"/></svg>
+      <svg width="16" height="12" viewBox="0 0 18 12"><path d="M9 2.5C11.5 2.5 13.7 3.5 15.3 5.1L17 3.4C14.9 1.3 12.1 0 9 0 5.9 0 3.1 1.3 1 3.4L2.7 5.1C4.3 3.5 6.5 2.5 9 2.5Z"/><path d="M9 7C10.4 7 11.7 7.6 12.6 8.5L14.3 6.8C12.9 5.4 11 4.5 9 4.5S5.1 5.4 3.7 6.8L5.4 8.5C6.3 7.6 7.6 7 9 7Z"/><circle cx="9" cy="11" r="1.5"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="22" height="10" rx="2" stroke="white" stroke-width="1.2" fill="none"/><rect x="1.5" y="2.5" width="17" height="7" rx="1.2" fill="white"/><path d="M23 4v4a2 2 0 000-4z" fill="white" opacity=".4"/></svg>
+    </div>
+  </div>
+
+  <div class="screens">
+
+    <!-- ═══════════════════════════════════════════════
+         SCREEN 0 — Dashboard
+    ═══════════════════════════════════════════════ -->
+    <div class="screen active" id="screen-0">
+      <div class="dash-header">
+        <div class="dash-greet">Good morning,</div>
+        <div class="dash-name">Adeniyi Abiodun</div>
+        <div class="balance-card">
+          <div class="bal-label">Total Balance</div>
+          <div class="bal-amount">$84,320.00</div>
+          <div class="bal-sub">Across 3 accounts · USD</div>
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <button class="qa-btn highlighted" onclick="goTo(1)">
+          <div class="qa-icon">🌐</div>
+          <div class="qa-label">Send Intl</div>
+        </button>
+        <button class="qa-btn">
+          <div class="qa-icon">📤</div>
+          <div class="qa-label">Send</div>
+        </button>
+        <button class="qa-btn">
+          <div class="qa-icon">📥</div>
+          <div class="qa-label">Receive</div>
+        </button>
+        <button class="qa-btn">
+          <div class="qa-icon">📊</div>
+          <div class="qa-label">Analytics</div>
+        </button>
+      </div>
+
+      <div class="recent-header">
+        <span class="recent-title">Recent</span>
+        <span class="recent-all">See all</span>
+      </div>
+
+      <div class="tx-row">
+        <div class="tx-icon" style="background:#fef3c7;">💶</div>
+        <div class="tx-info">
+          <div class="tx-name">Wire — Emeka Holdings Ltd</div>
+          <div class="tx-meta">Apr 28 · NGN · SWIFT</div>
+        </div>
+        <div class="tx-amount out">−$12,400.00</div>
+      </div>
+      <div class="tx-row">
+        <div class="tx-icon" style="background:#dcfce7;">💷</div>
+        <div class="tx-info">
+          <div class="tx-name">Incoming — Hartwell Ltd</div>
+          <div class="tx-meta">Apr 25 · GBP · SWIFT</div>
+        </div>
+        <div class="tx-amount in">+$8,220.50</div>
+      </div>
+      <div class="tx-row">
+        <div class="tx-icon" style="background:#ede9fe;">🏢</div>
+        <div class="tx-info">
+          <div class="tx-name">Tanaka Corp</div>
+          <div class="tx-meta">Apr 22 · JPY · SWIFT</div>
+        </div>
+        <div class="tx-amount out">−$5,100.00</div>
+      </div>
+
+      <div style="flex:1;"></div>
+      <div class="bottom-nav">
+        <button class="bnav-item active">
+          <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+          <span class="bnav-label">Home</span>
+          <div class="bnav-dot"></div>
+        </button>
+        <button class="bnav-item">
+          <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          <span class="bnav-label">Cards</span>
+        </button>
+        <button class="bnav-item">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          <span class="bnav-label">Transfers</span>
+        </button>
+        <button class="bnav-item">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="bnav-label">Profile</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SCREEN 1 — Select Source Account
+    ═══════════════════════════════════════════════ -->
+    <div class="screen" id="screen-1">
+      <div class="nav-header">
+        <button class="nav-back" onclick="goTo(0)">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          Back
+        </button>
+        <div class="nav-title">International Transfer</div>
+        <div class="nav-subtitle">Select a source account</div>
+        <div class="steps">
+          <div class="step-pill active"></div>
+          <div class="step-pill"></div>
+          <div class="step-pill"></div>
+          <div class="step-pill"></div>
+        </div>
+      </div>
+      <div class="body">
+        <div class="card">
+          <div class="card-label">Your Accounts</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="account-row selected" onclick="selectAccount(this)">
+              <div class="account-icon" style="background:#dbeafe;">🏦</div>
+              <div class="account-info">
+                <div class="account-name">Business Checking</div>
+                <div class="account-num">•••• 4821</div>
+              </div>
+              <div class="account-balance">$84,320.00</div>
+            </div>
+            <div class="account-row" onclick="selectAccount(this)">
+              <div class="account-icon" style="background:#fef3c7;">💰</div>
+              <div class="account-info">
+                <div class="account-name">USD Savings</div>
+                <div class="account-num">•••• 9034</div>
+              </div>
+              <div class="account-balance">$12,800.00</div>
+            </div>
+            <div class="account-row" onclick="selectAccount(this)">
+              <div class="account-icon" style="background:#dcfce7;">💵</div>
+              <div class="account-info">
+                <div class="account-name">Operations</div>
+                <div class="account-num">•••• 2267</div>
+              </div>
+              <div class="account-balance">$3,450.00</div>
+            </div>
+          </div>
+        </div>
+        <div class="fee-callout">
+          <div class="icon">ℹ️</div>
+          <div class="text">International wires are processed via SWIFT and typically arrive within 1–3 business days. Fees apply.</div>
+        </div>
+      </div>
+      <div class="btn-wrap">
+        <button class="btn-primary" onclick="goTo(2)">Continue</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SCREEN 2 — Select Recipient
+    ═══════════════════════════════════════════════ -->
+    <div class="screen" id="screen-2">
+      <div class="nav-header">
+        <button class="nav-back" onclick="goTo(1)">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          Back
+        </button>
+        <div class="nav-title">Choose Recipient</div>
+        <div class="nav-subtitle">Select saved beneficiary</div>
+        <div class="steps">
+          <div class="step-pill done"></div>
+          <div class="step-pill active"></div>
+          <div class="step-pill"></div>
+          <div class="step-pill"></div>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="card">
+          <div class="card-label">Recent Beneficiaries</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="recipient-row" style="cursor:pointer;border:2px solid #3d7fff;" onclick="goTo(3)">
+              <div class="recipient-avatar" style="background:linear-gradient(135deg,#1a6b3c,#22a85a);">EH</div>
+              <div class="account-info">
+                <div class="recipient-name">Emeka Holdings Ltd</div>
+                <div class="recipient-detail">🇳🇬 NG · Access Bank · 0023 4567 89</div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3d7fff" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+            <div class="recipient-row" style="cursor:pointer;border:2px solid transparent;" onclick="goTo(3)">
+              <div class="recipient-avatar" style="background:linear-gradient(135deg,#f59e0b,#d97706);">TC</div>
+              <div class="account-info">
+                <div class="recipient-name">Tanaka Corp</div>
+                <div class="recipient-detail">🇯🇵 JP · SWIFT MUFGJPJT</div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+            <div class="recipient-row" style="cursor:pointer;border:2px solid transparent;" onclick="goTo(3)">
+              <div class="recipient-avatar" style="background:linear-gradient(135deg,#10b981,#059669);">HL</div>
+              <div class="account-info">
+                <div class="recipient-name">Hartwell Ltd</div>
+                <div class="recipient-detail">🇬🇧 GB · IBAN GB29 NWBK 6016 1331 9268 19</div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </div>
+        </div>
+        <button class="btn-secondary" style="margin-top:0;" onclick="goTo(3)">+ Add New Recipient</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SCREEN 3 — Enter Amount
+    ═══════════════════════════════════════════════ -->
+    <div class="screen" id="screen-3">
+      <div class="nav-header">
+        <button class="nav-back" onclick="goTo(2)">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          Back
+        </button>
+        <div class="nav-title">Enter Amount</div>
+        <div class="nav-subtitle">Emeka Holdings Ltd · Nigeria</div>
+        <div class="steps">
+          <div class="step-pill done"></div>
+          <div class="step-pill done"></div>
+          <div class="step-pill active"></div>
+          <div class="step-pill"></div>
+        </div>
+      </div>
+
+      <div class="body" style="padding-bottom:0;">
+        <div class="amount-block">
+          <div class="currency-badge">
+            🇺🇸 USD <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+            <div class="amount-input" id="amount-display">$0</div>
+          </div>
+          <div class="amount-sub" id="amount-sub">≈ ₦0 NGN · Rate: 1,580</div>
+        </div>
+
+        <div class="fx-row">
+          <div>
+            <div class="fx-label">Exchange Rate</div>
+            <div class="fx-value" style="margin-top:2px;">1 USD = 1,580 NGN</div>
+          </div>
+          <div class="fx-badge">Live</div>
+        </div>
+        <div class="fx-row">
+          <div>
+            <div class="fx-label">Wire Fee</div>
+            <div class="fx-value" style="margin-top:2px;">$35.00 flat</div>
+          </div>
+          <div style="font-size:12px;color:#6b7280;">Intl SWIFT</div>
+        </div>
+      </div>
+
+      <div class="numpad">
+        <div class="numpad-row">
+          <button class="numpad-key" onclick="numpad('1')">1</button>
+          <button class="numpad-key" onclick="numpad('2')">2</button>
+          <button class="numpad-key" onclick="numpad('3')">3</button>
+        </div>
+        <div class="numpad-row">
+          <button class="numpad-key" onclick="numpad('4')">4</button>
+          <button class="numpad-key" onclick="numpad('5')">5</button>
+          <button class="numpad-key" onclick="numpad('6')">6</button>
+        </div>
+        <div class="numpad-row">
+          <button class="numpad-key" onclick="numpad('7')">7</button>
+          <button class="numpad-key" onclick="numpad('8')">8</button>
+          <button class="numpad-key" onclick="numpad('9')">9</button>
+        </div>
+        <div class="numpad-row">
+          <button class="numpad-key" onclick="numpad('.')">.</button>
+          <button class="numpad-key" onclick="numpad('0')">0</button>
+          <button class="numpad-key del" onclick="numpad('del')">⌫</button>
+        </div>
+      </div>
+
+      <div class="btn-wrap" style="padding-top:20px;">
+        <button class="btn-primary" onclick="goTo(4)">Review Transfer</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SCREEN 4 — Review & Confirm
+    ═══════════════════════════════════════════════ -->
+    <div class="screen" id="screen-4">
+      <div class="nav-header">
+        <button class="nav-back" onclick="goTo(3)">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          Back
+        </button>
+        <div class="nav-title">Review Transfer</div>
+        <div class="nav-subtitle">Confirm details before sending</div>
+        <div class="steps">
+          <div class="step-pill done"></div>
+          <div class="step-pill done"></div>
+          <div class="step-pill done"></div>
+          <div class="step-pill active"></div>
+        </div>
+      </div>
+      <div class="body">
+        <div class="summary-amount">
+          <div class="label">You're sending</div>
+          <div class="big" id="rev-big">$0.00</div>
+          <div class="sub" id="rev-sub">Recipient gets ≈ ₦0</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Transfer Details</div>
+          <div class="detail-row">
+            <span class="detail-key">From</span>
+            <span class="detail-val">Business Checking ···4821</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">To</span>
+            <span class="detail-val">Emeka Holdings Ltd<br><span style="font-weight:400;font-size:12px;color:#9ca3af;">0023 4567 89</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Bank</span>
+            <span class="detail-val">Access Bank PLC<br><span style="font-weight:400;font-size:12px;color:#9ca3af;">SWIFT: ABNGNGLA</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Country</span>
+            <span class="detail-val">🇳🇬 Nigeria</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Transfer type</span>
+            <span class="detail-val">SWIFT Wire</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Fees & Exchange</div>
+          <div class="detail-row">
+            <span class="detail-key">Amount</span>
+            <span class="detail-val" id="rev-amount">$0.00 USD</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Wire fee</span>
+            <span class="detail-val">$35.00</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">FX rate</span>
+            <span class="detail-val blue">1 USD = 1,580 NGN</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Total deducted</span>
+            <span class="detail-val" id="rev-total">$35.00</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Recipient receives</span>
+            <span class="detail-val green" id="rev-receives">₦0 NGN</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Estimated Arrival</div>
+          <div class="detail-row">
+            <span class="detail-key">Processing</span>
+            <span class="detail-val">Same-day (cut-off 3 PM)</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Delivery</span>
+            <span class="detail-val">May 2 – May 5, 2026</span>
+          </div>
+        </div>
+
+        <div class="bio-prompt">
+          <div class="bio-icon">🔐</div>
+          <div class="bio-title">Biometric Authorization</div>
+          <div class="bio-sub">You'll be asked to authenticate with Face ID before sending</div>
+        </div>
+      </div>
+      <div class="btn-wrap">
+        <button class="btn-primary" onclick="goTo(5)">Authorize &amp; Send</button>
+        <button class="btn-secondary" onclick="goTo(3)">Edit Amount</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SCREEN 5 — Success
+    ═══════════════════════════════════════════════ -->
+    <div class="screen" id="screen-5">
+      <div class="success-hero">
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="success-title">Transfer Sent</div>
+        <div class="success-sub" id="s5-sub">$0.00 USD is on its way to<br>Emeka Holdings Ltd in Nigeria</div>
+        <div class="success-ref">Reference <span>NVB-2026-084721</span></div>
+      </div>
+
+      <div class="body">
+        <div class="notif">
+          <span>📧</span> Confirmation sent to a.abiodun@novacorp.io
+        </div>
+
+        <div class="card">
+          <div class="section-title">Transfer Status</div>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-left">
+                <div class="tl-dot done">✅</div>
+                <div class="tl-line"></div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-title">Transfer Initiated</div>
+                <div class="tl-meta">May 1, 2026 · 9:41 AM</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left">
+                <div class="tl-dot active">🔵</div>
+                <div class="tl-line"></div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-title">SWIFT Processing</div>
+                <div class="tl-meta">In progress · Est. same day</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left">
+                <div class="tl-dot pending">⏳</div>
+                <div class="tl-line"></div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-title">Correspondent Bank</div>
+                <div class="tl-meta">Pending · Access Bank PLC</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left">
+                <div class="tl-dot pending">🏁</div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-title">Funds Delivered</div>
+                <div class="tl-meta">Est. May 2 – May 5, 2026</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Summary</div>
+          <div class="detail-row">
+            <span class="detail-key">Amount sent</span>
+            <span class="detail-val" id="s5-sent">$0.00</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Total charged</span>
+            <span class="detail-val" id="s5-total">$35.00</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Recipient gets</span>
+            <span class="detail-val green" id="s5-receives">₦0</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">New balance</span>
+            <span class="detail-val" id="s5-balance">$84,285.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-wrap">
+        <button class="btn-primary" onclick="goTo(0)">Back to Home</button>
+        <button class="btn-secondary">Share Receipt</button>
+      </div>
+    </div>
+
+  </div><!-- /screens -->
+</div><!-- /phone -->
+
+<script>
+  const FX_RATE = 1580;
+  const WIRE_FEE = 35;
+  const BALANCE = 84320;
+
+  let currentScreen = 0;
+  let amountRaw = '0';
+
+  function fmt(n, dec = 2) {
+    return n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+  function fmtNGN(n) {
+    return '₦' + Math.round(n).toLocaleString('en-US');
+  }
+
+  function goTo(n) {
+    const screens = document.querySelectorAll('.screen');
+    const cur = screens[currentScreen];
+    const next = screens[n];
+
+    cur.classList.remove('active');
+    cur.classList.add('exit');
+    setTimeout(() => cur.classList.remove('exit'), 400);
+
+    next.style.transform = n > currentScreen ? 'translateX(40px)' : 'translateX(-40px)';
+    next.classList.add('active');
+    next.offsetHeight;
+    next.style.transform = '';
+    currentScreen = n;
+
+    if (n === 4 || n === 5) populateReview();
+  }
+
+  function selectAccount(el) {
+    document.querySelectorAll('.account-row').forEach(r => r.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function numpad(key) {
+    if (key === 'del') {
+      amountRaw = amountRaw.slice(0, -1) || '0';
+    } else if (key === '.') {
+      if (!amountRaw.includes('.')) amountRaw += '.';
+    } else {
+      if (amountRaw === '0') amountRaw = key;
+      else amountRaw += key;
+    }
+    updateAmount();
+  }
+
+  function updateAmount() {
+    const num = parseFloat(amountRaw) || 0;
+    const parts = amountRaw.split('.');
+    let display = '$' + parseInt(parts[0] || 0).toLocaleString();
+    if (parts.length > 1) display += '.' + parts[1].slice(0, 2);
+    document.getElementById('amount-display').textContent = display;
+    document.getElementById('amount-sub').textContent =
+      '≈ ' + fmtNGN(num * FX_RATE) + ' NGN · Rate: ' + FX_RATE.toLocaleString();
+  }
+
+  function populateReview() {
+    const num = parseFloat(amountRaw) || 0;
+    const total = num + WIRE_FEE;
+    const ngn = num * FX_RATE;
+    const newBal = BALANCE - total;
+
+    document.getElementById('rev-big').textContent = '$' + fmt(num);
+    document.getElementById('rev-sub').textContent = 'Recipient gets ≈ ' + fmtNGN(ngn);
+    document.getElementById('rev-amount').textContent = '$' + fmt(num) + ' USD';
+    document.getElementById('rev-total').textContent = '$' + fmt(total);
+    document.getElementById('rev-receives').textContent = fmtNGN(ngn) + ' NGN';
+
+    document.getElementById('s5-sub').innerHTML =
+      '$' + fmt(num) + ' USD is on its way to<br>Emeka Holdings Ltd in Nigeria';
+    document.getElementById('s5-sent').textContent = '$' + fmt(num);
+    document.getElementById('s5-total').textContent = '$' + fmt(total);
+    document.getElementById('s5-receives').textContent = fmtNGN(ngn);
+    document.getElementById('s5-balance').textContent = '$' + fmt(newBal);
+  }
+</script>
+</body>
+</html>
