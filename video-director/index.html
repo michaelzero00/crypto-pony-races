@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Director</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { font-family: 'Inter', sans-serif; letter-spacing: -0.005em; }
+    body { background: #000000; }
+    .mono { font-family: 'JetBrains Mono', monospace; letter-spacing: 0; }
+    .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #6c7584; }
+    .sui-corner { border-radius: 0 20px 0 0 !important; }
+    .spinner { border: 2px solid rgba(255,255,255,0.08); border-top-color: #298dff; border-radius: 50%; width: 14px; height: 14px; animation: spin 0.7s linear infinite; display: inline-block; vertical-align: middle; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .card-draft  { border-color: #4b515b; }
+    .card-render { border-color: rgba(41,141,255,0.35); }
+    select, input, textarea { color-scheme: dark; font-family: 'Inter', sans-serif; }
+    ::placeholder { color: #89919f; }
+    .no-scrollbar { overflow-x: auto; scrollbar-width: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+
+  <!-- Top bar -->
+  <div class="border-b border-[#222529] px-6 py-3.5 flex items-center gap-6">
+    <div class="shrink-0">
+      <h1 class="text-sm font-medium text-white leading-none tracking-tight">Video Director</h1>
+      <p class="eyebrow mt-1">EvoLink · Seedance 2.0</p>
+    </div>
+    <div class="flex items-center gap-2 flex-1 min-w-0">
+      <div id="sceneTabs" class="flex gap-1.5 flex-1 min-w-0 overflow-x-auto no-scrollbar">
+        <button id="newSceneBtn" type="button" class="shrink-0 text-xs text-[#298dff] hover:text-[#4da2ff] transition whitespace-nowrap font-medium">+ Scene</button>
+      </div>
+      <button id="reorderBtn" type="button" class="shrink-0 text-xs text-[#6c7584] hover:text-white transition whitespace-nowrap">Reorder</button>
+    </div>
+    <div class="shrink-0 text-right">
+      <div id="balanceDisplay" class="mono text-xs text-[#6c7584] whitespace-nowrap">—</div>
+      <div class="flex gap-3 justify-end mt-1">
+        <button id="refreshBtn" type="button" class="mono text-xs text-[#298dff] hover:text-[#4da2ff] transition">↻</button>
+        <a href="https://evolink.ai/dashboard/credits" target="_blank" class="eyebrow hover:text-white transition" style="font-size:10px">+ Buy</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two-column layout -->
+  <div class="flex h-[calc(100vh-57px)]">
+
+    <!-- LEFT: controls -->
+    <div class="w-[420px] shrink-0 border-r border-[#222529] overflow-y-auto p-6 space-y-6">
+
+    <!-- Scene info bar -->
+    <div id="sceneInfo" class="hidden border border-[#222529] rounded px-3 py-2 flex items-center gap-2">
+      <span id="sceneScript" class="text-xs text-[#6c7584]"></span>
+      <span class="text-[#343940] text-xs">/</span>
+      <span id="sceneName" class="text-xs text-white font-medium"></span>
+      <span id="sceneDesc" class="text-xs text-[#6c7584] flex-1 truncate"></span>
+    </div>
+
+    <!-- API Key -->
+    <div class="space-y-1.5">
+      <label class="eyebrow">API Key</label>
+      <input id="elKey" type="password" value="sk-b2VPifripmz2sgn0Gfu7ysIYWlS7I1GJbaOr6b6tgGWg66V8"
+        class="w-full bg-[#222529] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition"
+        placeholder="sk-..." />
+    </div>
+
+    <!-- Image References -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <label class="eyebrow">Reference images <span style="opacity:0.5">(up to 9)</span></label>
+        <button id="addImageBtn" type="button" class="text-xs text-[#298dff] hover:text-[#4da2ff] transition font-medium">+ Add image</button>
+      </div>
+      <div id="imageInputs" class="space-y-2"></div>
+      <div id="imagePreviews" class="flex flex-wrap gap-2 mt-1"></div>
+    </div>
+
+    <!-- Prompt -->
+    <div class="space-y-1.5">
+      <div class="flex items-center justify-between">
+        <label class="eyebrow">Prompt</label>
+        <span id="promptCounter" class="mono text-[10px] text-[#6c7584]">0 / 8,400</span>
+      </div>
+      <textarea id="prompt" rows="5"
+        class="w-full bg-[#222529] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] resize-y transition"
+        placeholder="Describe the motion, scene, camera..."></textarea>
+    </div>
+
+    <!-- Error -->
+    <div id="errorBox" class="hidden border border-[#ff5a5a]/30 bg-[#ff5a5a]/5 rounded px-4 py-3 text-sm text-[#ff5a5a] whitespace-pre-wrap"></div>
+
+    <!-- Shared settings -->
+    <div class="grid grid-cols-2 gap-3">
+      <div class="space-y-1.5">
+        <label class="eyebrow">Ratio</label>
+        <select id="ratio" class="w-full bg-[#222529] border border-[#222529] rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition">
+          <option value="16:9" selected>16:9</option>
+          <option value="9:16">9:16</option>
+          <option value="1:1">1:1</option>
+          <option value="21:9">21:9</option>
+          <option value="4:3">4:3</option>
+        </select>
+      </div>
+      <div class="space-y-1.5">
+        <label class="eyebrow">Audio</label>
+        <select id="audio" class="w-full bg-[#222529] border border-[#222529] rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition">
+          <option value="true" selected>on</option>
+          <option value="false">off</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Draft settings + button -->
+    <div class="space-y-3 border border-[#222529] sui-corner p-4">
+      <p class="eyebrow">Draft</p>
+      <div class="grid grid-cols-4 gap-2">
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Duration</label>
+          <input id="draftDuration" type="number" min="1" max="15" step="1" value="10"
+            class="w-full bg-[#000000] border border-[#222529] rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Resolution</label>
+          <select id="draftQuality" class="w-full bg-[#000000] border border-[#222529] rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition">
+            <option value="480p" selected>480p</option>
+            <option value="720p">720p</option>
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Speed</label>
+          <select id="draftSpeed" class="w-full bg-[#000000] border border-[#222529] rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition">
+            <option value="fast" selected>fast</option>
+            <option value="standard">standard</option>
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Versions</label>
+          <input id="versions" type="number" min="1" max="4" step="1" value="2"
+            class="w-full bg-[#000000] border border-[#222529] rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition" />
+        </div>
+      </div>
+      <div id="draftCost" class="mono text-[11px] text-[#6c7584]"></div>
+      <button id="draftBtn" type="button"
+        class="w-full bg-[#222529] hover:bg-[#343940] border border-[#4b515b] sui-corner py-2.5 text-sm font-medium text-white transition">
+        Draft · 480p · EvoLink fast
+      </button>
+    </div>
+
+    <!-- Render settings + button -->
+    <div class="space-y-3 border border-[#298dff]/20 sui-corner p-4">
+      <p class="eyebrow" style="color:#298dff">Render</p>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Duration</label>
+          <input id="duration" type="number" min="1" max="15" step="1" value="10"
+            class="w-full bg-[#000000] border border-[#222529] rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Resolution</label>
+          <select id="renderQuality" class="w-full bg-[#000000] border border-[#222529] rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition">
+            <option value="720p">720p</option>
+            <option value="1080p" selected>1080p</option>
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Speed</label>
+          <select id="renderSpeed" class="w-full bg-[#000000] border border-[#222529] rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition">
+            <option value="standard" selected>standard</option>
+            <option value="fast">fast</option>
+          </select>
+        </div>
+      </div>
+      <div id="renderCostDisplay" class="mono text-[11px] text-[#6c7584]"></div>
+      <button id="renderDirectBtn" type="button"
+        class="w-full bg-[#298dff] hover:bg-[#4da2ff] sui-corner py-2.5 text-sm font-medium text-white transition">
+        Render · 1080p · EvoLink standard
+      </button>
+    </div>
+
+    <div id="costEstimate" class="hidden"></div>
+
+    </div><!-- /left panel -->
+
+    <!-- RIGHT: output + history -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+
+    <!-- Draft cards -->
+    <div id="draftsSection" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <p class="eyebrow">Drafts</p>
+        <span id="draftCount" class="mono text-[11px] text-[#6c7584]"></span>
+      </div>
+      <div id="draftCards" class="grid grid-cols-2 xl:grid-cols-3 gap-4"></div>
+      <div class="space-y-2 pt-4 border-t border-[#222529]">
+        <label class="eyebrow">Director note — apply to all new drafts</label>
+        <textarea id="globalFeedback" rows="2"
+          class="w-full bg-[#222529] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] resize-none transition"
+          placeholder="e.g. slow the camera down, more dramatic lighting..."></textarea>
+        <button id="redraftBtn" type="button"
+          class="w-full bg-[#222529] hover:bg-[#343940] border border-[#4b515b] sui-corner py-2 text-sm font-medium text-white transition">
+          Redraft all with note · EvoLink
+        </button>
+      </div>
+    </div>
+
+    <!-- Render section -->
+    <div id="renderSection" class="hidden space-y-3">
+      <div class="border-t border-[#298dff]/20 pt-4">
+        <p class="eyebrow mb-3" id="renderSectionLabel" style="color:#298dff">Final renders · 1080p · EvoLink</p>
+        <div id="renderCards" class="space-y-4"></div>
+      </div>
+    </div>
+
+    <!-- History section -->
+    <div id="historySection" class="hidden space-y-3">
+      <div class="border-t border-[#222529] pt-4 flex items-center justify-between">
+        <p class="eyebrow">Recent generations</p>
+        <button id="historyRefreshBtn" type="button" class="mono text-xs text-[#6c7584] hover:text-white transition">↻ Refresh</button>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex gap-1">
+          <button type="button" data-filter="all"   class="hist-filter px-2.5 py-1 text-xs sui-corner border border-[#298dff] bg-[#298dff] text-white transition">All</button>
+          <button type="button" data-filter="draft" class="hist-filter px-2.5 py-1 text-xs sui-corner border border-[#222529] text-[#6c7584] hover:text-white transition">Drafts</button>
+          <button type="button" data-filter="render" class="hist-filter px-2.5 py-1 text-xs sui-corner border border-[#222529] text-[#6c7584] hover:text-white transition">Renders</button>
+        </div>
+        <button id="showHiddenBtn" type="button" class="hidden ml-auto text-xs text-[#6c7584] hover:text-white transition">Show hidden</button>
+      </div>
+      <div id="historyCards" class="grid grid-cols-2 gap-3"></div>
+      <button id="loadMoreBtn" type="button" class="hidden w-full py-2 mono text-xs text-[#6c7584] hover:text-white border border-[#222529] hover:border-[#4b515b] rounded transition">
+        Load more
+      </button>
+    </div>
+
+    </div><!-- /right panel -->
+  </div><!-- /two-column -->
+
+  <!-- New Scene Modal -->
+  <div id="newSceneModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#222529] border border-[#4b515b] sui-corner w-full max-w-md p-6 space-y-4">
+      <p class="eyebrow">New scene</p>
+      <div class="space-y-3">
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Script / project name</label>
+          <input id="newScriptName" type="text" class="w-full bg-[#000000] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition" placeholder="e.g. The Dark Knight" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Shot name</label>
+          <input id="newShotName" type="text" class="w-full bg-[#000000] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition" placeholder="e.g. INT. OFFICE - DAY" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Description <span style="opacity:0.5">(optional)</span></label>
+          <textarea id="newShotDesc" rows="2" class="w-full bg-[#000000] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] resize-none transition" placeholder="Brief description of the shot..."></textarea>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button id="cancelSceneBtn" type="button" class="flex-1 py-2 text-xs text-[#6c7584] hover:text-white border border-[#4b515b] rounded transition">Cancel</button>
+        <button id="confirmSceneBtn" type="button" class="flex-1 py-2 text-xs font-medium bg-[#298dff] hover:bg-[#4da2ff] sui-corner text-white transition">Create scene</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Scene Modal -->
+  <div id="renameSceneModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#222529] border border-[#4b515b] sui-corner w-full max-w-md p-6 space-y-4">
+      <p class="eyebrow">Rename scene</p>
+      <div class="space-y-3">
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Script / project name</label>
+          <input id="renameScriptName" type="text" class="w-full bg-[#000000] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition" placeholder="e.g. The Dark Knight" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Shot name</label>
+          <input id="renameShotName" type="text" class="w-full bg-[#000000] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition" placeholder="e.g. INT. OFFICE - DAY" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="eyebrow" style="font-size:9px">Description <span style="opacity:0.5">(optional)</span></label>
+          <textarea id="renameShotDesc" rows="2" class="w-full bg-[#000000] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] resize-none transition" placeholder="Brief description of the shot..."></textarea>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button id="cancelRenameBtn" type="button" class="flex-1 py-2 text-xs text-[#6c7584] hover:text-white border border-[#4b515b] rounded transition">Cancel</button>
+        <button id="confirmRenameBtn" type="button" class="flex-1 py-2 text-xs font-medium bg-[#298dff] hover:bg-[#4da2ff] sui-corner text-white transition">Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  // --- Scene management ---
+  const SCENE_DEFAULTS = {
+    prompt: '', ratio: '16:9', audio: 'true',
+    draftDuration: '10', draftQuality: '480p', draftSpeed: 'fast', versions: '2',
+    renderDuration: '10', renderQuality: '1080p', renderSpeed: 'standard',
+    images: []
+  };
+
+  let SCENES = JSON.parse(localStorage.getItem('vd_scenes') || '[]');
+  let activeSceneId = localStorage.getItem('vd_active_scene') || null;
+
+  if (SCENES.length === 0) {
+    const s = { id: 'scene-default', scriptName: 'My Project', shotName: 'Scene 1', description: '', createdAt: Date.now() };
+    SCENES.push(s);
+    localStorage.setItem('vd_scenes', JSON.stringify(SCENES));
+  }
+  if (!activeSceneId || !SCENES.find(s => s.id === activeSceneId)) {
+    activeSceneId = SCENES[0].id;
+    localStorage.setItem('vd_active_scene', activeSceneId);
+  }
+
+  function captureSceneState() {
+    return {
+      prompt: $('prompt').value,
+      ratio: $('ratio').value,
+      audio: $('audio').value,
+      draftDuration: $('draftDuration').value,
+      draftQuality: $('draftQuality').value,
+      draftSpeed: $('draftSpeed').value,
+      versions: $('versions').value,
+      renderDuration: $('duration').value,
+      renderQuality: $('renderQuality').value,
+      renderSpeed: $('renderSpeed').value,
+      images: imageEntries.map(e => ({ url: e.url || '', displayName: e.displayName || null }))
+    };
+  }
+
+  function saveActiveScene() {
+    if (!activeSceneId) return;
+    try { localStorage.setItem(`vd_scene_${activeSceneId}`, JSON.stringify(captureSceneState())); } catch(e) {}
+  }
+
+  // Debounced auto-save
+  let _saveTimer = null;
+  function autoSave() { clearTimeout(_saveTimer); _saveTimer = setTimeout(saveActiveScene, 500); }
+
+  async function loadSceneIntoDOM(sceneId) {
+    const raw = localStorage.getItem(`vd_scene_${sceneId}`);
+    const state = raw ? JSON.parse(raw) : { ...SCENE_DEFAULTS };
+
+    $('prompt').value = state.prompt || '';
+    $('ratio').value = state.ratio || '16:9';
+    $('audio').value = state.audio || 'true';
+    $('draftDuration').value = state.draftDuration || '10';
+    $('draftQuality').value = state.draftQuality || '480p';
+    $('draftSpeed').value = state.draftSpeed || 'fast';
+    $('versions').value = state.versions || '2';
+    $('duration').value = state.renderDuration || '10';
+    $('renderQuality').value = state.renderQuality || '1080p';
+    $('renderSpeed').value = state.renderSpeed || 'standard';
+
+    // Rebuild image inputs
+    imageEntries.forEach(e => { if (e.objectUrl) URL.revokeObjectURL(e.objectUrl); });
+    imageEntries = [];
+    imgCounter = 0;
+    $('imageInputs').innerHTML = '';
+    $('imagePreviews').innerHTML = '';
+
+    if (state.images && state.images.length > 0) {
+      for (const img of state.images) {
+        if (img.url) addImageRowFromSaved(img);
+        else addImageRow();
+      }
+    } else {
+      await loadDefaultReference();
+    }
+
+    updateCost();
+    updatePromptCounter();
+    $('draftsSection').classList.add('hidden');
+    $('renderSection').classList.add('hidden');
+    $('draftCards').innerHTML = '';
+    $('renderCards').innerHTML = '';
+    $('errorBox').classList.add('hidden');
+  }
+
+  let _renameTargetId = null;
+
+  function openRenameModal(sceneId) {
+    const scene = SCENES.find(s => s.id === sceneId);
+    if (!scene) return;
+    _renameTargetId = sceneId;
+    $('renameScriptName').value = scene.scriptName || '';
+    $('renameShotName').value = scene.shotName || '';
+    $('renameShotDesc').value = scene.description || '';
+    $('renameSceneModal').classList.remove('hidden');
+    $('renameShotName').focus();
+  }
+
+  $('cancelRenameBtn').addEventListener('click', () => { $('renameSceneModal').classList.add('hidden'); _renameTargetId = null; });
+  $('renameSceneModal').addEventListener('click', e => { if (e.target === $('renameSceneModal')) { $('renameSceneModal').classList.add('hidden'); _renameTargetId = null; } });
+  $('confirmRenameBtn').addEventListener('click', () => {
+    if (!_renameTargetId) return;
+    const shot = $('renameShotName').value.trim();
+    if (!shot) { $('renameShotName').focus(); return; }
+    const scene = SCENES.find(s => s.id === _renameTargetId);
+    if (scene) {
+      scene.scriptName = $('renameScriptName').value.trim();
+      scene.shotName = shot;
+      scene.description = $('renameShotDesc').value.trim();
+      localStorage.setItem('vd_scenes', JSON.stringify(SCENES));
+      renderSceneTabs();
+    }
+    $('renameSceneModal').classList.add('hidden');
+    _renameTargetId = null;
+  });
+
+  // Reorder mode — when active, tabs are draggable; when inactive, clicks select scenes
+  let _reorderMode = false;
+  let _pd = null;
+
+  function setReorderMode(active) {
+    _reorderMode = active;
+    _pd = null;
+    const btn = $('reorderBtn');
+    btn.textContent = active ? 'Done' : 'Reorder';
+    btn.className = active
+      ? 'shrink-0 text-xs font-medium text-[#298dff] hover:text-[#4da2ff] transition whitespace-nowrap'
+      : 'shrink-0 text-xs text-[#6c7584] hover:text-white transition whitespace-nowrap';
+    renderSceneTabs();
+  }
+
+  // Global tab handlers — called via inline onclick/ondblclick on each tab button
+  window._tabClick = function(sceneId) {
+    if (_reorderMode) return;
+    switchScene(sceneId);
+  };
+  window._tabDblClick = function(sceneId) {
+    if (_reorderMode) return;
+    openRenameModal(sceneId);
+  };
+  window._tabPointerDown = function(btn, e) {
+    if (!_reorderMode || e.button !== 0) return;
+    _pd = { sceneId: btn.dataset.sceneId, startX: e.clientX, startY: e.clientY, isDragging: false, overSceneId: null };
+  };
+
+  document.addEventListener('pointermove', e => {
+    if (!_reorderMode || !_pd) return;
+    const dx = e.clientX - _pd.startX, dy = e.clientY - _pd.startY;
+    if (!_pd.isDragging && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+      _pd.isDragging = true;
+      const src = $('sceneTabs').querySelector(`[data-scene-id="${_pd.sceneId}"]`);
+      if (src) { src.classList.add('opacity-40'); src.style.cursor = 'grabbing'; }
+    }
+    if (_pd.isDragging) {
+      let target = null;
+      $('sceneTabs').querySelectorAll('[data-scene-id]').forEach(t => {
+        if (t.dataset.sceneId === _pd.sceneId) return;
+        const r = t.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top - 8 && e.clientY <= r.bottom + 8) target = t.dataset.sceneId;
+      });
+      if (target !== _pd.overSceneId) {
+        $('sceneTabs').querySelectorAll('[data-scene-id]').forEach(t => t.classList.remove('ring-2', 'ring-[#298dff]'));
+        if (target) $('sceneTabs').querySelector(`[data-scene-id="${target}"]`)?.classList.add('ring-2', 'ring-[#298dff]');
+        _pd.overSceneId = target;
+      }
+    }
+  });
+
+  document.addEventListener('pointerup', () => {
+    if (!_reorderMode || !_pd) return;
+    const { isDragging, overSceneId, sceneId } = _pd;
+    _pd = null;
+    $('sceneTabs').querySelectorAll('[data-scene-id]').forEach(t => {
+      t.classList.remove('opacity-40', 'ring-2', 'ring-[#298dff]');
+      t.style.cursor = _reorderMode ? 'grab' : '';
+    });
+    if (isDragging && overSceneId && overSceneId !== sceneId) {
+      const fromIdx = SCENES.findIndex(s => s.id === sceneId);
+      const toIdx   = SCENES.findIndex(s => s.id === overSceneId);
+      if (fromIdx >= 0 && toIdx >= 0) {
+        const [moved] = SCENES.splice(fromIdx, 1);
+        SCENES.splice(toIdx, 0, moved);
+        localStorage.setItem('vd_scenes', JSON.stringify(SCENES));
+        renderSceneTabs();
+      }
+    }
+  });
+
+  function renderSceneTabs() {
+    const tabsEl = $('sceneTabs');
+    const newBtn = $('newSceneBtn');
+    tabsEl.innerHTML = '';
+    SCENES.forEach(scene => {
+      const active = scene.id === activeSceneId;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.sceneId = scene.id;
+      btn.className = `shrink-0 px-3 py-1.5 text-xs border transition max-w-[160px] truncate font-medium sui-corner select-none ${
+        _reorderMode
+          ? (active ? 'bg-[#298dff] border-[#298dff] text-white cursor-grab' : 'bg-transparent border-dashed border-[#4b515b] text-[#6c7584] cursor-grab')
+          : (active ? 'bg-[#298dff] border-[#298dff] text-white cursor-pointer' : 'bg-transparent border-[#222529] text-[#6c7584] hover:text-white hover:border-[#4b515b] cursor-pointer')
+      }`;
+      btn.textContent = scene.shotName || 'Untitled';
+      btn.title = _reorderMode
+        ? 'Drag to reorder'
+        : [scene.scriptName, scene.shotName, scene.description].filter(Boolean).join(' · ') + ' (double-click to rename)';
+      btn.setAttribute('onclick', `_tabClick('${scene.id}')`);
+      btn.setAttribute('ondblclick', `_tabDblClick('${scene.id}')`);
+      btn.setAttribute('onpointerdown', `_tabPointerDown(this, event)`);
+
+      tabsEl.appendChild(btn);
+      if (active) tabsEl.appendChild(newBtn);
+    });
+    if (!tabsEl.contains(newBtn)) tabsEl.appendChild(newBtn);
+    const activeScene = SCENES.find(s => s.id === activeSceneId);
+    if (activeScene) {
+      $('sceneScript').textContent = activeScene.scriptName || '';
+      $('sceneName').textContent = activeScene.shotName || '';
+      $('sceneDesc').textContent = activeScene.description || '';
+      $('sceneInfo').classList.toggle('hidden', !activeScene.scriptName && !activeScene.shotName);
+    }
+  }
+
+  async function switchScene(sceneId) {
+    if (sceneId === activeSceneId) return;
+    saveActiveScene();
+    activeSceneId = sceneId;
+    try { localStorage.setItem('vd_active_scene', activeSceneId); } catch(e) {}
+    renderSceneTabs();
+    await loadSceneIntoDOM(sceneId);
+    initHistory();
+  }
+
+  function createScene(scriptName, shotName, description) {
+    saveActiveScene();
+    const id = `scene-${Date.now()}`;
+    const scene = { id, scriptName: scriptName.trim(), shotName: shotName.trim(), description: description.trim(), createdAt: Date.now() };
+    SCENES.push(scene);
+    localStorage.setItem('vd_scenes', JSON.stringify(SCENES));
+    localStorage.setItem(`vd_scene_${id}`, JSON.stringify({ ...SCENE_DEFAULTS }));
+    activeSceneId = id;
+    localStorage.setItem('vd_active_scene', activeSceneId);
+    renderSceneTabs();
+    loadSceneIntoDOM(id).then(() => initHistory());
+  }
+
+  // --- Multi-image reference manager ---
+  let imageEntries = [];
+  let imgCounter = 0;
+
+  function getImageUrls() {
+    return imageEntries.map(e => {
+      if (e.url) return e.url;
+      const input = document.querySelector(`#row-${e.id} input[type="text"]`);
+      return input ? input.value.trim() : '';
+    }).filter(v => v && !v.startsWith('blob:'));
+  }
+
+  function renderPreviews() {
+    const container = $('imagePreviews');
+    container.innerHTML = '';
+    imageEntries.forEach(entry => {
+      const src = entry.objectUrl || (entry.url && !entry.url.startsWith('data:') ? entry.url : null);
+      if (!src) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'relative group';
+      wrap.innerHTML = `
+        <img src="${src}" class="h-20 w-20 object-cover rounded border border-zinc-700" />
+        <button onclick="removeImage('${entry.id}')"
+          class="absolute -top-1.5 -right-1.5 bg-zinc-800 hover:bg-red-700 border border-zinc-600 rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">✕</button>
+      `;
+      container.appendChild(wrap);
+    });
+  }
+
+  function addImageRow(initialUrl = '') {
+    if (imageEntries.length >= 9) return;
+    const id = `img-${imgCounter++}`;
+    const entry = { id, url: initialUrl, file: null, objectUrl: null, displayName: null };
+    imageEntries.push(entry);
+
+    const row = document.createElement('div');
+    row.id = `row-${id}`;
+    row.className = 'flex gap-2 items-center';
+    row.innerHTML = `
+      <input type="text" value="${initialUrl}"
+        class="flex-1 bg-[#222529] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition"
+        placeholder="https://... or upload a file" />
+      <label class="cursor-pointer bg-[#222529] hover:bg-[#343940] border border-[#4b515b] rounded px-3 py-2 text-xs text-[#6c7584] hover:text-white transition whitespace-nowrap">
+        Upload
+        <input type="file" accept="image/*" class="hidden" />
+      </label>
+      <button onclick="removeImageRow('${id}')" class="text-[#6c7584] hover:text-[#ff5a5a] text-lg leading-none transition">✕</button>
+    `;
+
+    const urlInput = row.querySelector('input[type="text"]');
+    const fileInput = row.querySelector('input[type="file"]');
+
+    urlInput.addEventListener('blur', () => {
+      entry.url = urlInput.value.trim();
+      entry.displayName = null;
+      entry.file = null;
+      if (entry.objectUrl) { URL.revokeObjectURL(entry.objectUrl); entry.objectUrl = null; }
+      renderPreviews();
+      saveActiveScene();
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+      entry.objectUrl = URL.createObjectURL(file);
+      renderPreviews();
+      // Convert to base64 data URL for inline sending
+      const reader = new FileReader();
+      reader.onload = () => {
+        entry.url = reader.result;
+        entry.displayName = `📎 ${file.name}`;
+        urlInput.value = `📎 ${file.name}`;
+        saveActiveScene();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    $('imageInputs').appendChild(row);
+    if (initialUrl) renderPreviews();
+  }
+
+  function addImageRowFromSaved({ url, displayName }) {
+    if (imageEntries.length >= 9) return;
+    const id = `img-${imgCounter++}`;
+    const isBase64 = url && url.startsWith('data:');
+    const isHttp = url && url.startsWith('http');
+    const entry = { id, url: url || '', file: null, objectUrl: null, displayName: displayName || null };
+    imageEntries.push(entry);
+
+    const inputVal = displayName || (isHttp ? url : (url ? '📎 image' : ''));
+    const row = document.createElement('div');
+    row.id = `row-${id}`;
+    row.className = 'flex gap-2 items-center';
+    row.innerHTML = `
+      <input type="text" value="${inputVal.replace(/"/g,'&quot;')}" ${isBase64 ? 'readonly' : ''}
+        class="flex-1 bg-[#222529] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition"
+        placeholder="https://... or upload a file" />
+      <label class="cursor-pointer bg-[#222529] hover:bg-[#343940] border border-[#4b515b] rounded px-3 py-2 text-xs text-[#6c7584] hover:text-white transition whitespace-nowrap">
+        ${isBase64 ? 'Replace' : 'Upload'}
+        <input type="file" accept="image/*" class="hidden" />
+      </label>
+      <button onclick="removeImageRow('${id}')" type="button" class="text-[#6c7584] hover:text-[#ff5a5a] text-lg leading-none transition">✕</button>
+    `;
+    const urlInput = row.querySelector('input[type="text"]');
+    const fileInput = row.querySelector('input[type="file"]');
+    if (!isBase64) {
+      urlInput.addEventListener('blur', () => {
+        entry.url = urlInput.value.trim(); entry.displayName = null;
+        if (entry.objectUrl) { URL.revokeObjectURL(entry.objectUrl); entry.objectUrl = null; }
+        renderPreviews(); saveActiveScene();
+      });
+    }
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0]; if (!file) return;
+      if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+      entry.objectUrl = URL.createObjectURL(file);
+      renderPreviews();
+      const reader = new FileReader();
+      reader.onload = () => {
+        entry.url = reader.result; entry.displayName = `📎 ${file.name}`;
+        urlInput.value = entry.displayName; urlInput.setAttribute('readonly','');
+        saveActiveScene();
+      };
+      reader.readAsDataURL(file);
+    });
+    if (isBase64 && url) {
+      fetch(url).then(r=>r.blob()).then(blob => { entry.objectUrl = URL.createObjectURL(blob); renderPreviews(); }).catch(()=>{});
+    } else if (isHttp) { renderPreviews(); }
+    $('imageInputs').appendChild(row);
+  }
+
+  window.removeImageRow = function(id) {
+    const entry = imageEntries.find(e => e.id === id);
+    if (entry?.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+    imageEntries = imageEntries.filter(e => e.id !== id);
+    $(`row-${id}`)?.remove();
+    renderPreviews();
+    saveActiveScene();
+  };
+  window.removeImage = window.removeImageRow;
+
+  $('addImageBtn').addEventListener('click', () => addImageRow());
+
+  // Pre-load default reference image from disk (save image as default-reference.jpg in this folder)
+  async function loadDefaultReference() {
+    try {
+      const res = await fetch('./default-reference.jpg');
+      if (!res.ok) { addImageRow(); return; }
+      const blob = await res.blob();
+      const id = `img-${imgCounter++}`;
+      const entry = { id, url: '', file: null, objectUrl: URL.createObjectURL(blob), displayName: null };
+      imageEntries.push(entry);
+
+      // Convert to base64 for API
+      const reader = new FileReader();
+      reader.onload = () => {
+        entry.url = reader.result;
+        entry.displayName = '📎 default-reference.jpg';
+        saveActiveScene();
+      };
+      reader.readAsDataURL(blob);
+
+      const row = document.createElement('div');
+      row.id = `row-${id}`;
+      row.className = 'flex gap-2 items-center';
+      row.innerHTML = `
+        <input type="text" value="📎 default-reference.jpg"
+          class="flex-1 bg-[#222529] border border-[#222529] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#298dff] transition"
+          placeholder="https://... or upload a file" readonly />
+        <label class="cursor-pointer bg-[#222529] hover:bg-[#343940] border border-[#4b515b] rounded px-3 py-2 text-xs text-[#6c7584] hover:text-white transition whitespace-nowrap">
+          Replace
+          <input type="file" accept="image/*" class="hidden" />
+        </label>
+        <button onclick="removeImageRow('${id}')" type="button" class="text-[#6c7584] hover:text-[#ff5a5a] text-lg leading-none transition">✕</button>
+      `;
+
+      const fileInput = row.querySelector('input[type="file"]');
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+        entry.objectUrl = URL.createObjectURL(file);
+        renderPreviews();
+        const r2 = new FileReader();
+        r2.onload = () => {
+          entry.url = r2.result;
+          entry.displayName = `📎 ${file.name}`;
+          row.querySelector('input[type="text"]').value = `📎 ${file.name}`;
+          row.querySelector('input[type="text"]').removeAttribute('readonly');
+          saveActiveScene();
+        };
+        r2.readAsDataURL(file);
+      });
+
+      $('imageInputs').appendChild(row);
+      renderPreviews();
+    } catch (_) {
+      addImageRow(); // fallback to blank row if file missing
+    }
+  }
+  // scene init handles this — loadDefaultReference() called from loadSceneIntoDOM
+
+  // --- Prompt character limit ---
+  const PROMPT_LIMIT = 8400;
+
+  function updatePromptCounter() {
+    const len = $('prompt').value.length;
+    const over = len > PROMPT_LIMIT;
+    $('promptCounter').textContent = `${len.toLocaleString()} / ${PROMPT_LIMIT.toLocaleString()}`;
+    $('promptCounter').className = `text-xs ${over ? 'text-red-400 font-semibold' : 'text-zinc-600'}`;
+    $('prompt').classList.toggle('border-red-700', over);
+    $('prompt').classList.toggle('border-zinc-700', !over);
+    $('draftBtn').disabled = over;
+    $('renderDirectBtn').disabled = over;
+    $('draftBtn').classList.toggle('opacity-40', over);
+    $('draftBtn').classList.toggle('cursor-not-allowed', over);
+    $('renderDirectBtn').classList.toggle('opacity-40', over);
+    $('renderDirectBtn').classList.toggle('cursor-not-allowed', over);
+  }
+
+  $('prompt').addEventListener('input', updatePromptCounter);
+
+  // --- Cost estimates ---
+  // EvoLink standard: 480p $0.092/s, 720p $0.199/s, 1080p TBD (assumed ~$0.30/s)
+  // EvoLink fast:     480p $0.074/s, 720p $0.161/s
+  function elRate(quality, speed) {
+    const rates = {
+      standard: { '480p': 0.092, '720p': 0.199, '1080p': 0.30 },
+      fast:     { '480p': 0.074, '720p': 0.161, '1080p': 0.24 }
+    };
+    return rates[speed]?.[quality] ?? 0.092;
+  }
+
+  function updateCost() {
+    const draftDur = parseInt($('draftDuration').value);
+    const renderDur = parseInt($('duration').value);
+    const draftQ = $('draftQuality').value;
+    const renderQ = $('renderQuality').value;
+    const draftSpd = $('draftSpeed').value;
+    const renderSpd = $('renderSpeed').value;
+    const v = parseInt($('versions').value) || 1;
+    const draftTotal = (elRate(draftQ, draftSpd) * draftDur * v).toFixed(2);
+    const renderCost = (elRate(renderQ, renderSpd) * renderDur).toFixed(2);
+    $('draftCost').textContent = `${v} draft${v>1?'s':''} · ${draftQ} · ${draftDur}s · ${draftSpd} = ${draftTotal} credits`;
+    $('renderCostDisplay').textContent = `1× render · ${renderQ} · ${renderDur}s · ${renderSpd} = ${renderCost} credits`;
+    $('draftBtn').textContent = `Draft  ·  ${draftQ}  ·  EvoLink ${draftSpd}`;
+    $('renderDirectBtn').textContent = `Render  ·  ${renderQ}  ·  EvoLink ${renderSpd}`;
+    $('renderSectionLabel').textContent = `Final Renders · ${renderQ} · EvoLink ${renderSpd}`;
+  }
+  ['duration','draftDuration','versions','draftQuality','renderQuality','draftSpeed','renderSpeed'].forEach(id =>
+    $(id).addEventListener('input', updateCost));
+  updateCost();
+
+  // --- EvoLink API ---
+  function elModel(speed) {
+    return speed === 'fast' ? 'seedance-2.0-fast-reference-to-video' : 'seedance-2.0-reference-to-video';
+  }
+
+  async function submitEL(prompt, imageUrls, duration, ratio, audio, quality, speed = 'standard') {
+    const body = {
+      model: elModel(speed),
+      prompt,
+      image_urls: imageUrls.slice(0, 9),
+      duration: parseInt(duration),
+      quality,
+      aspect_ratio: ratio,
+      generate_audio: audio === 'true'
+    };
+    let res;
+    try {
+      res = await fetch('https://api.evolink.ai/v1/videos/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${$('elKey').value.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+    } catch (e) { throw new Error(`EvoLink network error: ${e.message}`); }
+    if (!res.ok) throw new Error(`EvoLink HTTP ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+
+  async function pollEL(taskId, onStatus) {
+    const url = `https://api.evolink.ai/v1/tasks/${taskId}`;
+    while (true) {
+      await new Promise(r => setTimeout(r, 5000));
+      let res;
+      try { res = await fetch(url, { headers: { 'Authorization': `Bearer ${$('elKey').value.trim()}` } }); }
+      catch (e) { throw new Error(`EvoLink poll error: ${e.message}`); }
+      if (!res.ok) throw new Error(`EvoLink poll HTTP ${res.status}: ${await res.text()}`);
+      const data = await res.json();
+      onStatus(data.status);
+      if (data.status === 'completed') return data.results?.[0];
+      if (data.status === 'failed') throw new Error(`EvoLink failed: ${JSON.stringify(data.error ?? data)}`);
+    }
+  }
+
+  // --- Background auto-refresh ---
+  let activeTaskCount = 0;
+  let autoRefreshTimer = null;
+
+  function startAutoRefresh() {
+    if (autoRefreshTimer) return;
+    autoRefreshTimer = setInterval(() => {
+      fetchHistory();
+      fetchBalance();
+    }, 5000);
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+  }
+
+  function taskStarted() { activeTaskCount++; startAutoRefresh(); }
+  function taskFinished() { activeTaskCount = Math.max(0, activeTaskCount - 1); if (activeTaskCount === 0) stopAutoRefresh(); }
+
+  // --- Card builder ---
+  let doneCount = 0, totalCount = 0;
+
+  function makeCard(id, label, isDraft) {
+    const renderQ = $('renderQuality').value;
+    const renderDur = parseInt($('duration').value);
+    const renderCost = (elRate(renderQ, $('renderSpeed').value) * renderDur).toFixed(2);
+    const card = document.createElement('div');
+    card.id = `card-${id}`;
+    card.className = `sui-corner border overflow-hidden ${isDraft ? 'card-draft bg-[#222529]' : 'card-render bg-[#222529]'}`;
+    card.innerHTML = `
+      <div class="px-3 py-2 border-b border-[#343940] flex items-center gap-2">
+        <span class="spinner" id="sp-${id}"></span>
+        <span class="text-xs text-[#c2c6cd] flex-1" id="st-${id}">Queued...</span>
+        <span class="mono text-[10px] text-[#6c7584]">${label}</span>
+      </div>
+      <div id="body-${id}" class="hidden">
+        <video controls class="w-full bg-black" id="vid-${id}"></video>
+        ${isDraft ? `
+        <div class="p-3 space-y-2">
+          <textarea rows="2" id="fb-${id}"
+            class="w-full bg-[#000000] border border-[#222529] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#298dff] resize-none transition"
+            placeholder="Director note for this version..."></textarea>
+          <div class="flex gap-2">
+            <button onclick="redraftOne('${id}')"
+              class="flex-1 bg-[#222529] hover:bg-[#343940] border border-[#4b515b] rounded py-1.5 text-xs font-medium text-white transition">
+              Redraft
+            </button>
+            <button onclick="lockAndRender('${id}')"
+              class="flex-1 bg-[#298dff] hover:bg-[#4da2ff] sui-corner py-1.5 text-xs font-medium text-white transition">
+              Lock &amp; render ${renderQ} · ${renderCost} credits
+            </button>
+          </div>
+        </div>` : ''}
+      </div>
+      <div id="err-${id}" class="hidden p-3 text-xs text-[#ff5a5a] whitespace-pre-wrap"></div>
+    `;
+    return card;
+  }
+
+  function setStatus(id, msg) { const el = $(`st-${id}`); if (el) el.textContent = msg; }
+
+  function setDone(id, videoUrl) {
+    $(`sp-${id}`).style.display = 'none';
+    setStatus(id, '✓ Done');
+    $(`st-${id}`).classList.replace('text-zinc-400', 'text-green-400');
+    $(`vid-${id}`).src = videoUrl;
+    $(`body-${id}`).classList.remove('hidden');
+    doneCount++;
+    $('draftCount').textContent = `${doneCount} / ${totalCount} done`;
+  }
+
+  function setErr(id, msg) {
+    $(`sp-${id}`).style.display = 'none';
+    setStatus(id, '✗ Failed');
+    $(`st-${id}`).classList.replace('text-zinc-400', 'text-red-400');
+    $(`err-${id}`).textContent = msg;
+    $(`err-${id}`).classList.remove('hidden');
+    doneCount++;
+    $('draftCount').textContent = `${doneCount} / ${totalCount} done`;
+  }
+
+  function elStatusLabel(s) {
+    const map = { pending: 'Queued...', processing: 'Processing...', completed: '✓ Done', failed: '✗ Failed' };
+    return map[s] ?? (s ? s.charAt(0).toUpperCase() + s.slice(1) + '...' : 'Queued...');
+  }
+
+  async function runDraft(cardId, prompt, imageUrls) {
+    taskStarted();
+    try {
+      setStatus(cardId, 'Submitting...');
+      const q = $('draftQuality').value;
+      const { id } = await submitEL(prompt, imageUrls, $('draftDuration').value, $('ratio').value, $('audio').value, q, $('draftSpeed').value);
+      trackTask(id, `draft · ${q} · ${$('draftDuration').value}s`, prompt, parseInt($('draftDuration').value));
+      const videoUrl = await pollEL(id, s => setStatus(cardId, elStatusLabel(s)));
+      if (!videoUrl) throw new Error('No video URL returned');
+      setDone(cardId, videoUrl);
+      fetchBalance();
+    } catch (e) { setErr(cardId, e.message); }
+    finally { taskFinished(); }
+  }
+
+  async function runRender(cardId, prompt, imageUrls) {
+    taskStarted();
+    try {
+      setStatus(cardId, 'Submitting...');
+      const q = $('renderQuality').value;
+      const { id } = await submitEL(prompt, imageUrls, $('duration').value, $('ratio').value, $('audio').value, q, $('renderSpeed').value);
+      trackTask(id, `render · ${q} · ${$('duration').value}s`, prompt, parseInt($('duration').value));
+      const videoUrl = await pollEL(id, s => setStatus(cardId, elStatusLabel(s)));
+      if (!videoUrl) throw new Error('No video URL returned');
+      setDone(cardId, videoUrl);
+      fetchBalance();
+    } catch (e) { setErr(cardId, e.message); }
+    finally { taskFinished(); }
+  }
+
+  // --- Buttons ---
+  $('draftBtn').addEventListener('click', draft);
+  $('renderDirectBtn').addEventListener('click', () => {
+    const prompt = $('prompt').value.trim();
+    const imageUrls = getImageUrls();
+    if (!$('elKey').value.trim()) { showError('Enter your EvoLink API key.'); return; }
+    if (!prompt) { showError('Enter a prompt.'); return; }
+    if (!imageUrls.length) { showError('Add at least one reference image.'); return; }
+    $('errorBox').classList.add('hidden');
+    const renderQ = $('renderQuality').value;
+    const dur = parseInt($('duration').value);
+    const cost = (elRate(renderQ, $('renderSpeed').value) * dur).toFixed(2);
+    const renderId = `r${Date.now()}`;
+    $('renderSection').classList.remove('hidden');
+    $('renderCards').prepend(makeCard(renderId, `${renderQ} · ${dur}s · ${cost} credits`, false));
+    $('renderSection').scrollIntoView({ behavior: 'smooth' });
+    runRender(renderId, prompt, imageUrls);
+  });
+  $('redraftBtn').addEventListener('click', () => {
+    const note = $('globalFeedback').value.trim();
+    if (note) $('prompt').value = $('prompt').value.trim() + '. ' + note;
+    $('globalFeedback').value = '';
+    draft();
+  });
+
+  function draft() {
+    const prompt = $('prompt').value.trim();
+    const imageUrls = getImageUrls();
+    const versions = Math.min(4, Math.max(1, parseInt($('versions').value) || 1));
+    if (!$('elKey').value.trim()) { showError('Enter your EvoLink API key.'); return; }
+    if (!prompt) { showError('Enter a prompt.'); return; }
+    if (!imageUrls.length) { showError('Add at least one reference image.'); return; }
+
+    $('errorBox').classList.add('hidden');
+    $('draftsSection').classList.remove('hidden');
+
+    const container = $('draftCards');
+    container.innerHTML = '';
+    container.className = versions === 1 ? 'space-y-4' : 'grid grid-cols-2 xl:grid-cols-3 gap-4';
+    doneCount = 0; totalCount = versions;
+    $('draftCount').textContent = `0 / ${versions} done`;
+
+    const q = $('draftQuality').value;
+    for (let i = 0; i < versions; i++) {
+      const id = `d${Date.now()}-${i}`;
+      container.appendChild(makeCard(id, `draft ${i+1} · ${q}`, true));
+      runDraft(id, prompt, imageUrls);
+    }
+  }
+
+  window.redraftOne = function(cardId) {
+    const note = $(`fb-${cardId}`)?.value.trim();
+    const prompt = note ? $('prompt').value.trim() + '. ' + note : $('prompt').value.trim();
+    const newId = `d${Date.now()}-r`;
+    const q = $('draftQuality').value;
+    $(`card-${cardId}`).replaceWith(makeCard(newId, `redraft · ${q}`, true));
+    runDraft(newId, prompt, getImageUrls());
+  };
+
+  window.lockAndRender = function(cardId) {
+    const note = $(`fb-${cardId}`)?.value.trim();
+    const prompt = note ? $('prompt').value.trim() + '. ' + note : $('prompt').value.trim();
+    if (!$('elKey').value.trim()) { showError('Enter your EvoLink API key.'); return; }
+    const renderQ = $('renderQuality').value;
+    const dur = parseInt($('duration').value);
+    const cost = (elRate(renderQ, $('renderSpeed').value) * dur).toFixed(2);
+    const renderId = `r${Date.now()}`;
+    $('renderSection').classList.remove('hidden');
+    $('renderCards').prepend(makeCard(renderId, `${renderQ} · ${dur}s · ${cost} credits`, false));
+    $('renderSection').scrollIntoView({ behavior: 'smooth' });
+    runRender(renderId, prompt, getImageUrls());
+  };
+
+  function showError(msg) {
+    $('errorBox').textContent = msg;
+    $('errorBox').classList.remove('hidden');
+  }
+
+  // --- Balance ---
+  async function fetchBalance() {
+    const key = $('elKey').value.trim();
+    if (!key) return;
+    $('balanceDisplay').textContent = 'loading…';
+    try {
+      const res = await fetch('https://api.evolink.ai/v1/credits', {
+        headers: { 'Authorization': `Bearer ${key}` }
+      });
+      if (!res.ok) { $('balanceDisplay').textContent = `unavailable (${res.status})`; return; }
+      const { data } = await res.json();
+      const remaining = data.user.remaining_credits;
+      const used = data.user.used_credits;
+      $('balanceDisplay').innerHTML =
+        `<span class="text-white">${remaining.toFixed(2)}</span> <span class="text-zinc-600">credits remaining · ${used.toFixed(2)} used</span>`;
+    } catch (e) {
+      $('balanceDisplay').textContent = 'balance unavailable';
+    }
+  }
+
+  $('refreshBtn').addEventListener('click', () => { fetchBalance(); initHistory(); });
+  $('elKey').addEventListener('blur', () => { fetchBalance(); initHistory(); });
+
+  // --- Generation history (per-scene, paginated from SESSION_TASKS) ---
+  const SESSION_TASKS = JSON.parse(localStorage.getItem('vd_tasks') || '[]');
+  const HISTORY_PAGE_SIZE = 10;
+  let sceneHistoryPage = 0;
+  const seenHistoryIds = new Set();
+  const MARKS = JSON.parse(localStorage.getItem('vd_marks') || '{}');
+
+  function saveMark(taskId, mark) {
+    if (mark) MARKS[taskId] = mark; else delete MARKS[taskId];
+    localStorage.setItem('vd_marks', JSON.stringify(MARKS));
+  }
+
+  let activeFilter = 'all';
+
+  function applyFilter() {
+    const cards = $('historyCards').querySelectorAll('[data-task-id]');
+    let anyHidden = false;
+    cards.forEach(card => {
+      const type = card.dataset.type ?? 'all';
+      const mark = MARKS[card.dataset.taskId];
+      const hiddenByMark = mark === 'bad';
+      const hiddenByFilter = activeFilter !== 'all' && type !== activeFilter;
+      if (hiddenByMark) anyHidden = true;
+      card.style.display = (hiddenByMark || hiddenByFilter) ? 'none' : '';
+    });
+    $('showHiddenBtn').classList.toggle('hidden', !anyHidden);
+  }
+
+  function applyMarkToCard(card, mark) {
+    const tickBtn = card.querySelector('[data-mark="good"]');
+    const crossBtn = card.querySelector('[data-mark="bad"]');
+    if (tickBtn) tickBtn.className = `text-xs transition shrink-0 hover:text-green-400 ${mark==='good'?'text-green-400':'text-[#6c7584]'}`;
+    if (crossBtn) crossBtn.className = `text-xs transition shrink-0 hover:text-[#ff5a5a] ${mark==='bad'?'text-[#ff5a5a]':'text-[#6c7584]'}`;
+  }
+
+  function buildHistoryCard(task) {
+    const statusColor = task.status==='completed'?'text-green-400':task.status==='failed'?'text-red-400':'text-zinc-400';
+    const videoUrl = task.results?.[0];
+    const date = task.created_at ? new Date(task.created_at*1000).toLocaleString() : '';
+    const cost = task.credits_used != null ? ` · ${Number(task.credits_used).toFixed(2)} credits` : '';
+    const clipLen = task._clipDuration != null ? ` · ${task._clipDuration}s` : '';
+    const label = task._label ?? task.model ?? task.id ?? '—';
+    const promptText = task._prompt ?? '';
+    const promptRow = promptText ? `<div class="px-3 pb-2 text-xs text-[#6c7584] truncate">${promptText}</div>` : '';
+    const type = label.startsWith('render') ? 'render' : 'draft';
+    const mark = MARKS[task.id];
+    const card = document.createElement('div');
+    card.className = 'sui-corner border border-[#4b515b] bg-[#222529] overflow-hidden';
+    card.dataset.taskId = task.id;
+    card.dataset.type = type;
+    card.innerHTML = `
+      <div class="px-3 py-2 flex items-center gap-2">
+        <span class="mono text-[10px] ${statusColor} w-20 shrink-0" data-status="${task.id}">${task.status??'—'}</span>
+        <span class="text-xs text-[#c2c6cd] flex-1 truncate">${label}</span>
+        <span class="mono text-[10px] text-[#6c7584] shrink-0">${date}${clipLen}${cost}</span>
+        ${promptText?`<button type="button" data-reuse-prompt="${encodeURIComponent(promptText)}" class="text-xs text-[#6c7584] hover:text-[#298dff] transition shrink-0" title="Reload prompt">↻</button>`:''}
+        <button type="button" data-mark="good" class="text-xs transition shrink-0 hover:text-green-400 ${mark==='good'?'text-green-400':'text-[#6c7584]'}" title="Mark good">✓</button>
+        <button type="button" data-mark="bad" class="text-xs transition shrink-0 hover:text-[#ff5a5a] ${mark==='bad'?'text-[#ff5a5a]':'text-[#6c7584]'}" title="Hide">✕</button>
+      </div>
+      ${promptRow}
+      ${videoUrl?`<video controls src="${videoUrl}" class="w-full bg-black aspect-video"></video>`:''}
+    `;
+    const reuseBtn = card.querySelector('[data-reuse-prompt]');
+    if (reuseBtn) {
+      reuseBtn.addEventListener('click', () => {
+        $('prompt').value = decodeURIComponent(reuseBtn.dataset.reusePrompt);
+        $('prompt').scrollIntoView({behavior:'smooth',block:'center'});
+        $('prompt').focus();
+      });
+    }
+    ['good','bad'].forEach(m => {
+      card.querySelector(`[data-mark="${m}"]`).addEventListener('click', () => {
+        const current = MARKS[task.id];
+        const next = current === m ? null : m;
+        if (m==='bad' && next==='bad') card.querySelectorAll('video').forEach(v=>v.pause());
+        saveMark(task.id, next);
+        applyMarkToCard(card, next);
+        applyFilter();
+      });
+    });
+    return card;
+  }
+
+  function getSceneTasks() {
+    return SESSION_TASKS.filter(t =>
+      t.sceneId === activeSceneId ||
+      (!t.sceneId && activeSceneId === SCENES[0]?.id)
+    );
+  }
+
+  async function loadMoreHistory() {
+    if ($('loadMoreBtn').dataset.loading === 'true') return;
+    const sceneTasks = getSceneTasks();
+    const start = sceneHistoryPage * HISTORY_PAGE_SIZE;
+    const page = sceneTasks.slice(start, start + HISTORY_PAGE_SIZE);
+    if (page.length === 0) { $('loadMoreBtn').classList.add('hidden'); return; }
+
+    $('loadMoreBtn').dataset.loading = 'true';
+    $('loadMoreBtn').textContent = 'Loading…';
+
+    try {
+      const key = $('elKey').value.trim();
+      const detailed = await Promise.all(page.map(async t => {
+        try {
+          const res = await fetch(`https://api.evolink.ai/v1/tasks/${t.id}`, { headers: { 'Authorization': `Bearer ${key}` } });
+          if (!res.ok) return null;
+          const data = await res.json();
+          return { ...data, _label: t.label, _prompt: t.prompt, _clipDuration: t.clipDuration };
+        } catch { return null; }
+      }));
+
+      detailed.filter(Boolean).forEach(task => {
+        if (!task?.id || seenHistoryIds.has(task.id)) return;
+        seenHistoryIds.add(task.id);
+        $('historyCards').appendChild(buildHistoryCard(task));
+      });
+
+      sceneHistoryPage++;
+      const hasMore = sceneTasks.length > sceneHistoryPage * HISTORY_PAGE_SIZE;
+      $('loadMoreBtn').classList.toggle('hidden', !hasMore);
+      if (hasMore) $('loadMoreBtn').textContent = 'Load more';
+      applyFilter();
+    } finally {
+      $('loadMoreBtn').dataset.loading = 'false';
+    }
+  }
+
+  async function fetchHistory() {
+    // Auto-refresh: update status of currently visible cards
+    const key = $('elKey').value.trim();
+    if (!key) return;
+    const container = $('historyCards');
+    const visibleCards = [...container.querySelectorAll('[data-task-id]')];
+    await Promise.all(visibleCards.map(async card => {
+      const taskId = card.dataset.taskId;
+      try {
+        const res = await fetch(`https://api.evolink.ai/v1/tasks/${taskId}`, { headers: { 'Authorization': `Bearer ${key}` } });
+        if (!res.ok) return;
+        const task = await res.json();
+        const statusEl = card.querySelector(`[data-status="${taskId}"]`);
+        if (statusEl) {
+          statusEl.textContent = task.status ?? '—';
+          statusEl.className = `mono text-[10px] w-20 shrink-0 ${task.status==='completed'?'text-green-400':task.status==='failed'?'text-[#ff5a5a]':'text-[#6c7584]'}`;
+        }
+        if (task.results?.[0] && !card.querySelector('video')) {
+          const vid = document.createElement('video');
+          vid.controls = true; vid.src = task.results[0]; vid.className = 'w-full bg-black aspect-video';
+          card.appendChild(vid);
+        }
+      } catch {}
+    }));
+  }
+
+  async function initHistory() {
+    seenHistoryIds.clear();
+    sceneHistoryPage = 0;
+    $('historyCards').innerHTML = '';
+    $('loadMoreBtn').classList.add('hidden');
+    $('historySection').classList.remove('hidden');
+    await loadMoreHistory();
+  }
+
+  function trackTask(taskId, label, prompt = '', clipDuration = null) {
+    SESSION_TASKS.unshift({ id: taskId, label, prompt, clipDuration, ts: Date.now(), sceneId: activeSceneId });
+    if (SESSION_TASKS.length > 150) SESSION_TASKS.length = 150;
+    try { localStorage.setItem('vd_tasks', JSON.stringify(SESSION_TASKS)); } catch(e) {}
+  }
+
+  $('loadMoreBtn').addEventListener('click', loadMoreHistory);
+  $('historyRefreshBtn').addEventListener('click', initHistory);
+
+  document.querySelectorAll('.hist-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeFilter = btn.dataset.filter;
+      document.querySelectorAll('.hist-filter').forEach(b => {
+        const a = b===btn;
+        b.classList.toggle('bg-[#298dff]', a); b.classList.toggle('border-[#298dff]', a);
+        b.classList.toggle('text-white', a);
+        b.classList.toggle('bg-transparent', !a); b.classList.toggle('border-[#222529]', !a);
+        b.classList.toggle('text-[#6c7584]', !a);
+      });
+      applyFilter();
+    });
+  });
+
+  $('showHiddenBtn').addEventListener('click', () => {
+    Object.keys(MARKS).forEach(id => {
+      if (MARKS[id]==='bad') {
+        delete MARKS[id];
+        const card = $('historyCards').querySelector(`[data-task-id="${id}"]`);
+        if (card) applyMarkToCard(card, null);
+      }
+    });
+    localStorage.setItem('vd_marks', JSON.stringify(MARKS));
+    applyFilter();
+  });
+
+  // Scene modal
+  $('reorderBtn').addEventListener('click', () => setReorderMode(!_reorderMode));
+  $('newSceneBtn').addEventListener('click', () => { $('newSceneModal').classList.remove('hidden'); $('newShotName').focus(); });
+  $('cancelSceneBtn').addEventListener('click', () => { $('newSceneModal').classList.add('hidden'); });
+  $('confirmSceneBtn').addEventListener('click', () => {
+    const script = $('newScriptName').value.trim();
+    const shot = $('newShotName').value.trim();
+    if (!shot) { $('newShotName').focus(); return; }
+    createScene(script || 'Untitled', shot, $('newShotDesc').value.trim());
+    $('newSceneModal').classList.add('hidden');
+    $('newScriptName').value = ''; $('newShotName').value = ''; $('newShotDesc').value = '';
+  });
+  $('newSceneModal').addEventListener('click', e => { if (e.target === $('newSceneModal')) $('newSceneModal').classList.add('hidden'); });
+
+  // Auto-save on all form inputs
+  ['prompt','ratio','audio','draftDuration','draftQuality','draftSpeed','versions','duration','renderQuality','renderSpeed'].forEach(id => {
+    $(id).addEventListener('input', autoSave);
+    $(id).addEventListener('change', autoSave);
+  });
+
+  // Init
+  window.addEventListener('load', () => {
+    renderSceneTabs();
+    loadSceneIntoDOM(activeSceneId).then(() => {
+      if ($('elKey').value.trim()) { fetchBalance(); initHistory(); }
+    });
+  });
+</script>
+</body>
+</html>
